@@ -89,3 +89,6 @@ knapsack_problem.print_node_distribution(knapsack_distribution, 0.001)
 - **Non-Dominated Item**: An item that is not dominated by any other in the current set.
 - **Dominated Node**: A node containing at least one dominated item which is added from this node onwards. Items already added are ignored.
 - **Optimal Node**: The terminal node(s) with the highest total value which are possible from this node. There may be better terminal nodes, but they cannot be reached from this branch.
+
+## 🔓 License
+This project is licensed under AGPLv3. Derivative works must be licensed under the same terms and source code must be made available.
