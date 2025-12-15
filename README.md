@@ -72,13 +72,13 @@ knapsack_capacity = 957
 knapsack_problem = KnapsackProblem.create(knapsack_items, knapsack_capacity)
 
 # Define parameters
-param_alpha, param_beta, param_gamma, param_delta = 0.7, 0.6, 0.4, 0.6
+parameters = param_alpha, param_beta, param_gamma, param_delta = 0.7, 0.6, 0.4, 0.6
 
 # Compute distribution
 knapsack_distribution = knapsack_problem.get_node_distribution(param_beta, param_alpha, param_gamma, param_delta)
 
 # Print distribution
-knapsack_problem.print_node_distribution(knapsack_distribution, 0.01)
+knapsack_problem.print_node_distribution(knapsack_distribution, parameters, 0.01)
 ```
 Output:
 ```
