@@ -43,12 +43,13 @@ For full details of the model, including explanation and examples of the individ
 
 - **Caching**  
   Uses hash-based caching to avoid redundant computations.
+  Hashes use SHA256, so they are stable across Python runs. Data can be saved and compared.
 
 ---
 
 ## 🛠 Requirements
 - Python **3.14+** (due to modern type hints)
-- Standard library only (`math`, `sys`)
+- Standard library only (`math`, `sys`, `hashlib`, `enum`)
 
 ---
 
