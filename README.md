@@ -78,7 +78,7 @@ parameters = param_alpha, param_beta, param_gamma, param_delta = 0.7, 0.6, 0.4, 
 knapsack_distribution = knapsack_problem.get_node_distribution(param_beta, param_alpha, param_gamma, param_delta)
 
 # Print distribution
-knapsack_problem.print_node_distribution(knapsack_distribution, parameters, 0.01)
+knapsack_problem.print_node_distribution(knapsack_distribution, parameters, print_threshold=0.01)
 ```
 Output:
 ```
