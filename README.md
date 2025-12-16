@@ -25,7 +25,7 @@ For full details of the model, including explanation and examples of the individ
 
 ## 🏗 Classes
 
-The module primarily consists of two main classes:
+The module primarily consists of two classes:
 
 1.  **`KnapsackItem`**
 
@@ -42,6 +42,8 @@ The module primarily consists of two main classes:
           * Child nodes representing feasible subproblems.
           * Terminal nodes and optimal solutions.
       * Computes probabilistic distributions of reaching each terminal node.
+ 
+Note: `KnapsackItem` and `KnapsackProblem` both use custom hashing functions. It may be the case that `self == other` and `hash(self) == hash(other)` give different results. As such, both `KnapsackItem` and `KnapsackProblem` should not be used directly as an element in a set or as a key in a dict. The hash should manually be used instead.
 
 -----
 
@@ -50,6 +52,8 @@ The module primarily consists of two main classes:
   - **Dominance Handling**
 
       * Items and nodes are classified as **dominated** or **non-dominated** based on value and weight comparisons.
+      * An item with equal (or higher) value than an item with equal (or lower) weight dominates.
+      * When two items are equal in weight and value, an arbitrary ranking is applied to simulate the simpler instance, as one item can be ignored.
       * Dominated items are strictly weaker and influence branching decisions.
 
   - **Node Distribution Calculation**
@@ -63,7 +67,7 @@ The module primarily consists of two main classes:
   - **Caching**
 
       * Uses hash-based caching (`problems_by_hash`, `distributions_by_hash`) to avoid redundant computations.
-      * Hashes use SHA256, so they are stable across Python runs. Data can be saved and compared.
+      * Hashes use the last 7-bytes of a SHA256 hash, so they are stable across Python runs. Data can be saved and compared.
 
 -----
 
@@ -83,7 +87,8 @@ The module primarily consists of two main classes:
 ## 🛠 Requirements
 
   - Python **3.14+** (due to modern type hints)
-  - Standard library only (`math`, `sys`, `hashlib`, `enum`)
+  - Python **64-bit** for int64 hashing 
+  - Standard library only (`sys`, `platform`, `math`, `hashlib`, `enum`)
 
 -----
 
@@ -125,7 +130,7 @@ Output:
 ```
 Inputs
 
-Parameters: α = 0.7, β = 0.6, γ = 0.4, δ - 0.6
+Parameters: α = 0.7, β = 0.6, γ = 0.4, δ = 0.6
 
 Knapsack Problem Variant: Optimisation
 
@@ -167,7 +172,7 @@ Number of Terminal Nodes: 338
 ## ✒️ Authors
 
   * **Roman Berlanger** (rb2057@cam.ac.uk) - Model and concept
-  * **Robert Woods** (rmw73@cam.ac.uk) - Code and implementation
+  * **Robert Woods** (rmw73@cam.ac.uk / robert.mark.woods@gmail.com) - Code and implementation
 
 -----
 

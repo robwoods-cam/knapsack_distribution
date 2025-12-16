@@ -1,122 +1,49 @@
-####################################################################################################
-####################################################################################################
-####################################################################################################
-###############                                                                      ###############
-###############                                                                      ###############
-###############       Predicting decision-making under computational complexity      ###############
-###############                                Chapter 1                             ###############
-###############                                                                      ###############
-###############                   Knapsack Choice Distribution Tool                  ###############
-###############                                                                      ###############
-###############                                                                      ###############
-###############                            Roman Berlanger                           ###############
-###############                            rb2057@cam.ac.uk                          ###############
-###############                                   &                                  ###############
-###############                              Robert Woods                            ###############
-###############                             rmw73@cam.ac.uk                          ###############
-###############                                                                      ###############
-###############                                                                      ###############
-####################################################################################################
-####################################################################################################
-####################################################################################################
-
 """
-Copyright (c) 2025 Robert Woods
-Copyright (c) 2025 Roman Berlanger
+Knapsack Choice Distribution Tool.
 
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, version 3.
+Provides classes for the calculation of probabilistic choice distribution in knapsack problems.
+See README.md for full documentation and examples.
 
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+Copyright
+---------
+© 2025 Robert Woods - Code and implementation  
+© 2025 Roman Berlanger - Model and concept  
 
-You should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
-"""
+License
+-------
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero
+General Public License as published by the Free Software Foundation, version 3.
 
-"""
-knapsack_cls.py
-===============
-
-This module provides classes and methods for calculating the probabilistic node distribution
-of a **Knapsack Problem** using a cached tree-based approach with dominance checks.
-
-Overview
---------
-The knapsack problem is a combinatorial optimization problem where the goal is to maximize the total value 
-of items placed in a knapsack without exceeding its weight capacity. This module introduces two main classes:
-
-1. **KnapsackItem**
-   Represents an individual item with attributes such as value, weight, density, and a unique identifier.
-   Includes methods for dominance checks and hashing for efficient comparisons.
-
-2. **KnapsackProblem**
-   Represents a knapsack problem instance or a node in the search tree. Each node tracks:
-   - Remaining capacity
-   - Items available for inclusion
-   - Items already included
-   - Child nodes representing feasible subproblems
-   - Terminal nodes and optimal solutions
-
-Key Features
-------------
-- **Dominance Handling**:
-  Items and nodes are classified as dominated or non-dominated based on value and weight comparisons.
-  Dominated items are strictly weaker and influence branching decisions.
-
-- **Node Distribution Calculation**:
-  Computes the probability distribution of ending in each terminal node based on behavioral parameters:
-  - `param_alpha`: Search/global optimization
-  - `param_beta`: Density preference (local optimization)
-  - `param_gamma`: Complexity aversion (weight preference)
-  - `param_delta`: Item-level rationality
-
-- **Caching**:
-  Uses hash-based caching (`problems_by_hash`, `distributions_by_hash`) to avoid redundant computations.
-
-Terminology
------------
-- **Node**: A knapsack state with a set of remaining items and capacity.
-- **Child Node**: A new node created by adding one item to the current knapsack.
-- **Master Node**: The founding node which created this knapsack problem.
-- **Terminal Node**: A node with no feasible child nodes (capacity exhausted or no items left).
-- **Dominated Item**: An item that is strictly worse than another (higher weight and lower or equal value).
-- **Non-Dominated Item**: An item that is not dominated by any other in the current set.
-- **Dominated Node**: A node containing at least one dominated item which is added from this node onwards. Note
-items which are dominated may already be added. Items already added are ignored.
-- **Optimal Node**: The terminal node(s) with the highest total value which are possible from this node. Note
-there may be better terminal nodes, but they cannot be reached from this branch.
-
-Requirements
-------------
-- Python 3.14+ (due to type hints and modern syntax)
-- Standard library only (`math`, `sys`)
-
-Usage
------
-Example of optimisation problem:
-    >>> knapsack_items = [KnapsackItem(535, 236), KnapsackItem(214, 113), KnapsackItem(152, 96), KnapsackItem(342, 220), KnapsackItem(259, 172), KnapsackItem(268, 212), KnapsackItem(246, 220), KnapsackItem(137, 158), KnapsackItem(148, 184), KnapsackItem(24, 46), KnapsackItem(23, 64), KnapsackItem(47, 189)]
-    >>> knapsack_capacity = 957
-    >>> knapsack_problem = KnapsackProblem.create(knapsack_items, knapsack_capacity)
-    >>> param_alpha, param_beta, param_gamma, param_delta = 0.7, 0.6, 0.4, 0.6
-    >>> knapsack_distribution = knapsack_problem.get_node_distribution(param_beta, param_alpha, param_gamma, param_delta)
-    >>> knapsack_problem.print_node_distribution(knapsack_distribution, 0.001)
-
-Notes
------
-- 
+See README.md and LICENSE for further details.
 """
 
 import sys
+import platform
+import math
+import hashlib
+from enum import Enum, auto
+
 
 # Enforce Python version
 if sys.version_info < (3, 14):
     sys.exit("Python 3.14 or later is required.")
 
-import math
-from enum import Enum, auto
+# Enforce Python architecture
+if platform.architecture()[0] != "64bit":    
+    sys.exit("Python 64-bit is required.")
 
-MODEL_VERSION: int = 2
+# The major and minor version numbers should match the model version. Patch should be used for fixes and features
+# added to the code.
+__version__ = "2.0.0"
 
 
 class ProblemType(Enum):
+    """ The types of Knapsack Problem.
+    
+    Optimisation requires finding the maximum net value of a feasible selection of items.
+    Decision requires finding any feasible selection of items, if it exists, to state (True or False) that a target
+    net value can be reached.
+    A feasible selection of items requires the net weight to be less than or equal to the capacity."""
     OPTIMISATION = auto()
     DECISION = auto()
 
@@ -141,21 +68,25 @@ class KnapsackItem():
 
     Notes
     -----
-    * `__eq__` and `__gt__` were reworked to allow sorting of `KnapsackItem`s to allow a `KnapsackProblem` to create
+    * `__eq__` and `__gt__` are overridden to allow sorting of `KnapsackItem`s to allow a `KnapsackProblem` to create
     a unique hash based on the items available to allow for nodes to merge and save computational resources.
+    * self == other and hash(self) == hash(other) may give different results. __eq__ only compares the value and 
+    weight of the item, allowing for sorting. However, the hash looks for unique items for branching.
+    This means that `KnapsackItem`s should not be used as keys or in sets.
     """
     _value: int
     _weight: int
     _density: float
     _knapsack_item_id: int
-    _hash: int
+    _full_hash: bytes
     _dominating_knapsack_item_hashes: set[int] | None
 
+    # class attributes
     _knapsack_items_count: int = 0
 
     @classmethod
     def create_from_list(cls, values: list[int], weights: list[int]) -> list[KnapsackItem]:
-        """ creates a `list` of `KnapsackItem` from a list of `values` and `weights`
+        """ creates and returns a `list` of `KnapsackItem` from an equal list of `values` and `weights`
 
         Parameters
         ----------
@@ -166,10 +97,10 @@ class KnapsackItem():
 
         Raises
         ------
-        Exception
+        TypeError
             if `values` and `weights` are not both `list`s of `int`s
 
-        Exception
+        ValueError
             if the length of `values` and `weights` are not both equal
 
         Returns
@@ -178,10 +109,12 @@ class KnapsackItem():
                 the newly created `KnapsackItem`s
 
         """
-        assert isinstance(values, list) and all(isinstance(value, int) for value in values)
-        assert isinstance(weights, list) and all(isinstance(weight, int) for weight in weights)
-        assert len(values) == len(weights)
-        # TODO convert these into errors
+        if not (isinstance(values, list) and all(isinstance(value, int) for value in values)):
+            raise TypeError("values must be a list of ints.")
+        if not (isinstance(weights, list) and all(isinstance(weight, int) for weight in weights)):
+            raise TypeError("weights must be a list of ints.")
+        if len(values) != len(weights):
+            raise ValueError(f"Length of values and weights must be equal, got {len(values)} (values) and {len(weights)} (weights).")
 
         knapsack_items: list[KnapsackItem] = []
         for value, weight in zip(values, weights):
@@ -190,28 +123,62 @@ class KnapsackItem():
         return knapsack_items
 
     def __init__(self, value: int, weight: int) -> None:
+        """ creates a `KnapsackItem`
+
+        Parameters
+        ----------
+        value : int
+            The value of the `KnapsackItem
+        weights : int
+            The weight of the `KnapsackItem`
+
+        Raises
+        ------
+        TypeError
+            if `value` and `weight` are not both `int`s
+        ValueError
+            if `value` is not positive or `weight` not non-negative
+        """
+
+        if not isinstance(value, int):
+            raise TypeError(f"value must be of type int, is {type(value)}.")
+        
+        if value < 0:
+            raise ValueError(f"value must be non-negative, is {value}.")        
+        
+        if not isinstance(weight, int):
+            raise TypeError(f"weight must be of type int, is {type(weight)}.")
+        
+        if weight <= 0:
+            raise ValueError(f"wight must be non-negative, is {weight}.")
+
         self._value = value
         self._weight = weight
         self._density = self._value / self._weight
         self._knapsack_item_id = KnapsackItem._knapsack_items_count
-        hash_string = str(self._value) + str(self._weight) + str(self._knapsack_item_id)  # Each item gets it own unique hash, even if it matches in value and weight. Merging of identical nodes happens in final print processing
-        self._hash = int(hash(hash_string)) 
+        # Each item gets it own unique hash, even if it matches in value and weight. Merging of identical nodes happens in final print processing
+        hash_string = str(self._value) + "," + str(self._weight) + "," + str(self._knapsack_item_id)
+        self._full_hash = hashlib.sha256(hash_string.encode("utf-8")).digest()
         self._dominating_knapsack_item_hashes = None
 
         KnapsackItem._knapsack_items_count += 1
 
     def __eq__(self, other: object) -> bool:
+        """ Note that self == other and hash(self) == hash(other) do not return the same result """
         if not isinstance(other, KnapsackItem):
-            raise NotImplementedError
+            raise NotImplementedError(f"Cannot compared `KnapsackItem` to type {type(other)}.")
         return self._density == other.density and self._value == other.value
 
     def __gt__(self, other: object) -> bool:
         if not isinstance(other, KnapsackItem):
-            raise NotImplementedError
+            raise NotImplementedError(f"Cannot compared `KnapsackItem` to type {type(other)}.")
         return self._density > other.density or (self._density == other.density and self._value > other.value)
 
     def __hash__(self) -> int:
-        return self._hash
+        """ Python uses 61 bit hashes (on 64-bit implementations), so we use the last 7 bytes of the SHA-256 as the hash. 
+        
+        This only works on 64-bit implementations of Python."""
+        return int.from_bytes(self._full_hash[:7], 'big')
 
     def __str__(self) -> str:
         return f'(v: {self._value}, w: {self._weight})'
@@ -241,11 +208,12 @@ class KnapsackItem():
 
     @property
     def knapsack_detailed_repr(self) -> str:
-        """Returns the representation including the knapsack_item_id"""
+        """ Returns the representation including the knapsack_item_id """
         return f'KnapsackItem(value = {self._value}, weight = {self._weight}, id = {self._knapsack_item_id})'
 
     def set_dominance(self, knapsack_items: list[KnapsackItem]) -> None:
-        """
+        """ Sets the `KnapsackItem`s that dominate this `KnapsackItem`.
+        
         Sets `_dominating_knapsack_item_hashes` to a `set` of `hash`es for all `knapsack_item`s in `knapsack_items` that dominate it.
         A knapsack item dominates another if both the value is greater than the other value and the weight is less than the other weight and at least one is strictly.
 
@@ -256,26 +224,34 @@ class KnapsackItem():
 
         Raises
         ------
-        Exception
-            if the `hash` of another `KnapsackItem` matches its own
+        TypeError
+            if a list of `KnapsackItem`s is not supplied
+        ValueError
+            if the list of dominating `KnapsackItem`s includes this `KnapsackItem` (self dominance)
 
         Returns
         -------
             None
         """
-        assert isinstance(knapsack_items, list) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)
+        if not (isinstance(knapsack_items, list) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)):
+            raise TypeError("knapsack_items must be a list of `KnapsackItem`")
 
+        if hash(self) in [hash(knapsack_item) for knapsack_item in knapsack_items]:
+            raise ValueError("`KnapsackItem` cannot be dominated by itself.")
+
+        # must use hashes for sets due to the reworked hash function
         self._dominating_knapsack_item_hashes = set()
 
         for knapsack_item in knapsack_items:
-            if (knapsack_item.value > self.value and knapsack_item.weight <= self.weight) or (knapsack_item.value >= self.value and knapsack_item.weight < self.weight) or (knapsack_item.value == self.value and knapsack_item.weight == self.weight and knapsack_item.knapsack_item_id < self.knapsack_item_id):
+            if (knapsack_item.value > self.value and knapsack_item.weight <= self.weight) or (knapsack_item.value >= self.value and knapsack_item.weight < self.weight) or (knapsack_item == self and knapsack_item.knapsack_item_id < self.knapsack_item_id):
                 self._dominating_knapsack_item_hashes.add(hash(knapsack_item))
 
     def check_dominance(self, knapsack_items: list[KnapsackItem]) -> bool:
-        """
-        Checks to see if any `knapsack_item`s in `knapsack_items` that dominate itself.
+        """ Checks to see if any `KnapsackItem` in `knapsack_items` dominates this `KnapsackItem`.
+        
         A knapsack item dominates another if both the value is greater than the other value and the weight is less than the other weight and at least one is strictly.
         `set_dominance` must be run prior to `check_dominance`
+        
         Parameters
         ----------
         knapsack_items : list[KnapsackItem]
@@ -283,8 +259,10 @@ class KnapsackItem():
 
         Raises
         ------
-        Exception
-            if the `hash` of another `KnapsackItem` matches its own
+        TypeError
+            if a list of `KnapsackItem`s is not supplied
+        RuntimeError
+            if `check_dominance` is called before dominance is set (using `set_dominance`)
 
         Returns
             is dominated : bool
@@ -292,18 +270,17 @@ class KnapsackItem():
         -------
 
         """
+        if not (isinstance(knapsack_items, list) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)):
+            raise TypeError("knapsack_items must be a list of `KnapsackItem`.")
+
         if self._dominating_knapsack_item_hashes is None:
-            raise Exception('Dominating knapsack items have not been set yet')
+            raise RuntimeError('Dominating knapsack items have not been set yet. Use `set_dominance()` first.')
 
         for knapsack_item in knapsack_items:
             if hash(knapsack_item) in self._dominating_knapsack_item_hashes:
                 return True
 
         return False
-
-    # TODO add  def transformed_weight(alpha, gamma) -> float so it can be used everywhere
-    # Consider using a reference system for alpha and gamma as they currently dont change
-    # this means it can be looked up rather than calculated each time
 
 
 class KnapsackProblem():
@@ -339,13 +316,16 @@ class KnapsackProblem():
 
     Notes
     -----
+    * `create` should be used rather than `__init__`
     * hash includes the master_knapsack, this means if we get to an identical node but from a different starting knapsack, everything will be processed again.
-    * Python salts hashes. This means hashes are only consistent within a single Python run, not across runs. Could change to a consistent hashing function like MD5 or SHA if needed, but not required for now
+    * self == other and hash(self) == hash(other) may give different results. __eq__ only compares the value and 
+    weight of the item, allowing for sorting. However, the hash looks for unique items for branching.
+    This means that `KnapsackProblem`s should not be used as keys or in sets.
     """
 
     _knapsack_items: list[KnapsackItem]
     _knapsack_capacity: int
-    _hash: int
+    _full_hash: bytes
     _standing_value: int
     _standing_knapsack_items: list[KnapsackItem]
     _master_knapsack: KnapsackProblem | None
@@ -361,12 +341,17 @@ class KnapsackProblem():
     _optimal_terminal_node_value: int
     _number_of_optimal_terminal_nodes: int | None
 
+    # class attributes
     problems_by_hash: dict[int, KnapsackProblem] = {}
     distributions_by_hash: dict[int, dict[int, float]] = {}
 
     @classmethod
     def create(cls, knapsack_items: list[KnapsackItem], knapsack_capacity: int, standing_value: int = 0, standing_knapsack_items: list[KnapsackItem] = [], master_knapsack: KnapsackProblem | None = None) -> KnapsackProblem:
         """ `KnapsackProblem.create()` should be used rather than `__init__`
+
+        If a node (`KnapsackProblem`) already exists, the existing instance will be returned, rather than creating a new one.
+        If it does not, a new instance will be created.
+        This allows for the efficient branching.
 
         Parameters
         ----------
@@ -378,16 +363,50 @@ class KnapsackProblem():
             the sum of values of items already included in the knapsack
         master_knapsack : KnapsackProblem | None
             the original `KnapsackProblem` which this node spawned from. If this is the original node, `master_knapsack` will be `None`
-        """
+        
+        Raises
+        ------
+        TypeError
+            if `knapsack_items` and `standing_knapsack_items` are not a list of `KnapsackItem`s, knapsack_capacity and standing_value are not `int`s,
+            or `master_knapsack` is not either a `KnapsackProblem` or `None.
+        ValueError
+            if `knapsack_capacity` or `standing_value` are negative.
 
-        knapsack_hash: int = hash(str(sorted(knapsack_items)) + str(knapsack_capacity) + str(standing_value) + str(sorted(standing_knapsack_items)) + str(master_knapsack))
+        Returns
+        -------
+            KnapsackProblem
+        """
+        if not (isinstance(knapsack_items, list) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)):
+            raise TypeError("`knapsack_items` must be a `list` of `KnapsackItem`s.")
+        
+        if not isinstance(knapsack_capacity, int):
+            raise TypeError(f"`knapsack_capacity` must be int, is {type(knapsack_capacity)}")
+        
+        if knapsack_capacity < 0:
+            raise ValueError(f"`knapsack_capacity` must be positive, is {knapsack_capacity}.")
+        
+        if not isinstance(standing_value, int):
+            raise TypeError(f"`standing_value` must be int, is {type(standing_value)}")
+        
+        if standing_value < 0:
+            raise ValueError(f"`standing_value` must be non-negative, is {standing_value}.")        
+        
+        if not (isinstance(standing_knapsack_items, list) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in standing_knapsack_items)):
+            raise TypeError("`standing_knapsack_items` must be a `list` of `KnapsackItem`s.")
+        
+        if not isinstance(master_knapsack, KnapsackProblem | None):
+            raise TypeError(f"`master_knapsack` must be of type `KnapsackProblem` or is None, is {type(master_knapsack)}.")
+
+        hash_string = str(sorted(knapsack_items)) + "," + str(knapsack_capacity) + "," + str(standing_value) + "," + str([hash(knapsack_item) for knapsack_item in sorted(standing_knapsack_items)]) + "," + str(hash(master_knapsack))
+        knapsack_full_hash = hashlib.sha256(hash_string.encode("utf-8")).digest()
+        knapsack_hash = int.from_bytes(knapsack_full_hash[:7], 'big')
 
         if knapsack_hash in cls.problems_by_hash:
             return cls.problems_by_hash[knapsack_hash]
 
-        return KnapsackProblem(knapsack_items, knapsack_capacity, knapsack_hash, standing_value, standing_knapsack_items, master_knapsack)
+        return KnapsackProblem(knapsack_items, knapsack_capacity, knapsack_full_hash, standing_value, standing_knapsack_items, master_knapsack)
 
-    def __init__(self, knapsack_items: list[KnapsackItem], knapsack_capacity: int, knapsack_hash: int, standing_value: int = 0, standing_knapsack_items: list[KnapsackItem] = [], master_knapsack: KnapsackProblem | None = None) -> None:
+    def __init__(self, knapsack_items: list[KnapsackItem], knapsack_capacity: int, knapsack_hash: bytes, standing_value: int = 0, standing_knapsack_items: list[KnapsackItem] = [], master_knapsack: KnapsackProblem | None = None) -> None:
         """
         Important
         ---------
@@ -399,22 +418,51 @@ class KnapsackProblem():
             a `list` of all the possible `KnapsackItem`s that should be considered
         knapsack_capacity : int
             the weight capacity of the `KnapsackProblem`, the remaining capacity for a child node (sub problem)
-        hash : int
+        knapsack_hash : bytes
             a unique value for the `KnapsackProblem`, this allows for multiple pathways to reach the same node and not require recalculation
         standing_value : int, default 0
             the sum of values of items already included in the knapsack
         master_knapsack : KnapsackProblem | None
             the original `KnapsackProblem` which this node spawned from. If this is the original node, `master_knapsack` will be `None`
+
+                
+        Raises
+        ------
+        TypeError
+            if `knapsack_items` and `standing_knapsack_items` are not a list of `KnapsackItem`s, `knapsack_hash` is not of type `bytes`,
+            knapsack_capacity and standing_value are not `int`s, or `master_knapsack` is not either a `KnapsackProblem` or `None.
+        ValueError
+            if `knapsack_capacity` or `standing_value` are negative.
         """
-        assert isinstance(knapsack_items, list) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)
-        assert isinstance(knapsack_capacity, int) and knapsack_capacity >= 0
-        assert isinstance(knapsack_hash, int)
-        assert isinstance(standing_value, int)
-        assert isinstance(master_knapsack, KnapsackProblem | None)
+        # TODO add to docstring
+
+        if not (isinstance(knapsack_items, list) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)):
+            raise TypeError("`knapsack_items` must be a `list` of `KnapsackItem`s.")
+        
+        if not isinstance(knapsack_capacity, int):
+            raise TypeError(f"`knapsack_capacity` must be int, is {type(knapsack_capacity)}")
+        
+        if not isinstance(knapsack_hash, bytes):
+            raise TypeError(f"`knapsack_capacity` must be `bytes`, is {type(knapsack_hash)}")
+        
+        if knapsack_capacity < 0:
+            raise ValueError(f"`knapsack_capacity` must be positive, is {knapsack_capacity}.")
+        
+        if not isinstance(standing_value, int):
+            raise TypeError(f"`standing_value` must be int, is {type(standing_value)}")
+        
+        if standing_value < 0:
+            raise ValueError(f"`standing_value` must be non-negative, is {standing_value}.")        
+        
+        if not (isinstance(standing_knapsack_items, list) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in standing_knapsack_items)):
+            raise TypeError("`standing_knapsack_items` must be a `list` of `KnapsackItem`s.")
+        
+        if not isinstance(master_knapsack, KnapsackProblem | None):
+            raise TypeError(f"`master_knapsack` must be of type `KnapsackProblem` or is None, is {type(master_knapsack)}.")
 
         self._knapsack_items = knapsack_items
         self._knapsack_capacity = knapsack_capacity
-        self._hash = knapsack_hash
+        self._full_hash = knapsack_hash
         self._standing_value = standing_value
         self._standing_knapsack_items = standing_knapsack_items
         self._master_knapsack = master_knapsack
@@ -442,7 +490,7 @@ class KnapsackProblem():
         if self._child_nodes:
             for _, child_node in self._child_nodes:
                 if child_node._is_terminal_node:
-                    self._terminal_nodes.add(child_node._hash)
+                    self._terminal_nodes.add(hash(child_node))
                 else:
                     self._terminal_nodes.update(child_node._terminal_nodes)
 
@@ -455,7 +503,7 @@ class KnapsackProblem():
             for _, child_node in self._child_nodes:
                 if child_node._optimal_terminal_node_value == self._optimal_terminal_node_value:
                     if child_node._is_terminal_node:
-                        self._optimal_terminal_nodes.add(child_node._hash)
+                        self._optimal_terminal_nodes.add(hash(child_node))
                     else:
                         self._optimal_terminal_nodes.update(child_node._optimal_terminal_nodes)
                 elif child_node._optimal_terminal_node_value > self._optimal_terminal_node_value:
@@ -463,10 +511,13 @@ class KnapsackProblem():
 
         self._number_of_optimal_terminal_nodes = None if self._is_terminal_node else len(self._optimal_terminal_nodes)
 
-        self.problems_by_hash[knapsack_hash] = self
+        self.problems_by_hash[hash(self)] = self
 
     def __hash__(self) -> int:
-        return self._hash
+        """ Python uses 61 bit hashes (on 64-bit implementations), so we use the last 7 bytes of the SHA-256 as the hash. 
+        
+        This only works on 64-bit implementations of Python."""
+        return int.from_bytes(self._full_hash[:7], 'big')
 
     def _create_child_nodes(self) -> list[tuple[KnapsackItem, KnapsackProblem]] | None:
         """ recursively create all the child nodes from this node """
@@ -485,11 +536,12 @@ class KnapsackProblem():
                                                     knapsack_capacity, standing_value, standing_knapsack_items,
                                                     master_knapsack)
                 child_nodes.append((knapsack_item, child_node))
+        
         return child_nodes if child_nodes else None
     
     @property
     def knapsack_items(self) -> list[KnapsackItem]:
-        """List of all items which can be considered for addition to this node.
+        """ List of all items which can be considered for addition to this node.
         
         This is NOT the items included in the knapsack so far."""
         return self._knapsack_items
@@ -520,7 +572,6 @@ class KnapsackProblem():
         This is also known as a capacity-constrained node or knapsack."""
         return self._is_terminal_node
 
-
     def get_node_distribution(self, param_beta: float, param_alpha: float, param_gamma: float, param_delta: float, problem_type: ProblemType = ProblemType.OPTIMISATION, value_threshold: int | None = None) -> dict[int, float]:
         """
         Get the distribution (as a percentage of 1) that someone will end in each terminal node from this given Knapsack Problem.
@@ -545,31 +596,67 @@ class KnapsackProblem():
 
         Raises
         ------
-        Exception
+        RuntimeError
             if the sum of node distribution is not close to 1
+        ValueError("Cannot process node distribution for a node which _number_of_terminal_nodes is set to None")
+        raise ValueError(f"Unexpected problem type: {problem_type}")
 
         Returns
         -------
         node_distribution : dict[int, float]
             A dict of the feasible terminal nodes with the percentage that one will end in each terminal node based on `beta`
         """
+        # TODO add to docstring
+
+        if not isinstance(param_beta, float):
+            raise TypeError(f"`param_beta` must be of type float, but is {type(param_beta)}.")
+        if not 0.0 <= param_beta < 1.0:
+            raise ValueError(f"`param_beta` be greater than or equal to 0.0 and less than 1.0, but is {param_beta}.")
         
-        assert isinstance(param_beta, float) and 0.0 <= param_beta < 1.0
-        assert isinstance(param_alpha, float) and 0.0 <= param_alpha <= 1.0 if problem_type is ProblemType.DECISION else 0.0 < param_alpha <= 1.0
-        assert isinstance(param_gamma, float) and 0.0 <= param_gamma < 1.0
-        assert isinstance(param_delta, float) and 0.0 <= param_delta <= 1.0
-        assert isinstance(problem_type, ProblemType)
-        assert value_threshold is None if problem_type is ProblemType.OPTIMISATION else (isinstance(value_threshold, int) and value_threshold > 0)        
+        if not isinstance(param_gamma, float):
+            raise TypeError(f"`param_gamma` must be of type float, but is {type(param_gamma)}.")
+        if not 0.0 <= param_gamma < 1.0:
+            raise ValueError(f"`param_gamma` be greater than or equal to 0.0 and less than 1.0, but is {param_gamma}.")
+        
+        if not isinstance(param_delta, float):
+            raise TypeError(f"`param_delta` must be of type float, but is {type(param_delta)}.")
+        if not 0.0 <= param_delta <= 1.0:            
+            raise ValueError(f"`param_delta` be greater than or equal to 0.0 and less than or equal to 1.0, but is {param_delta}.")
 
-        node_distribution_hash = hash(str(param_beta) + str(param_alpha) + str(param_gamma) + str(param_delta) + str(problem_type) + str(hash(self)))
+        if not isinstance(param_alpha, float):
+            raise TypeError(f"`param_alpha` must be of type float, but is {type(param_alpha)}.")
+        
+        if not isinstance(problem_type, ProblemType):
+            raise TypeError(f"`problem_type` must be of type `ProblemType`, but is {type(problem_type)}.")
+        
+        if problem_type is ProblemType.DECISION:
+            if not 0.0 <= param_alpha <= 1.0:
+                raise ValueError(f"`param_alpha` be greater than or equal to 0.0 and less than or equal to 1.0 for the decision problem, but is {param_alpha}.")
+        
+            if not isinstance(value_threshold, int):
+                raise TypeError(f"`value_threshold` must be int for decision problem, is {type(value_threshold)}.")
+            if value_threshold < 0:
+                raise ValueError(f"`value_threshold` must be positive for decision problem, is {value_threshold}.")
+        
+        elif problem_type is ProblemType.OPTIMISATION:
+            if not 0.0 < param_alpha <= 1.0:
+                raise ValueError(f"`param_alpha` be greater than 0.0 and less than or equal to 1.0 for the optimisation problem, but is {param_alpha}.")
+            
+            if value_threshold is not None:
+                raise TypeError(f"`value_threshold` must be None for optimisation problem, is {type(value_threshold)}.")
+    
+        else:
+            raise ValueError(f"`problem_type` expected to be `DECISION` or `OPTIMISATION`, is {problem_type}.")
 
+        hash_string = str(param_beta)  + "," + str(param_alpha) + "," + str(param_gamma) + "," + str(param_delta) + "," + str(problem_type) + "," + str(hash(self))
+        node_distribution_hash = int(hashlib.sha256(hash_string.encode("utf-8")).hexdigest(), 16)
         if node_distribution_hash in self.distributions_by_hash:
             return self.distributions_by_hash[node_distribution_hash]
 
         node_distribution: dict[int, float] = {}
 
         if self._is_terminal_node:
-            node_distribution[self._hash] = 1.0
+            node_distribution[hash(self)] = 1.0
             return node_distribution
 
         if self._number_of_terminal_nodes is None:
@@ -595,6 +682,8 @@ class KnapsackProblem():
             percent_find_optimal_non_dominated = (param_delta * math.exp((1 - number_of_non_dominated_terminal_nodes) * ((1 - param_alpha) / param_alpha)))
         
         elif problem_type is ProblemType.DECISION:
+            if value_threshold is None:
+                raise ValueError("`value_threshold` must be set in Decision task.")  # TODO tidy
             if param_alpha == 0.0:
                 percent_find_optimal_full_set = 0.0
                 percent_find_optimal_non_dominated = 0.0
@@ -604,8 +693,8 @@ class KnapsackProblem():
                 percent_witness_found_delta_0 = sum([distribution_percentage for knapsack_problem_hash, distribution_percentage in distribution_search_delta_0.items() if KnapsackProblem.problems_by_hash[knapsack_problem_hash]._standing_value >= value_threshold])
                 percent_witness_found_delta_1 = sum([distribution_percentage for knapsack_problem_hash, distribution_percentage in distribution_search_delta_1.items() if KnapsackProblem.problems_by_hash[knapsack_problem_hash]._standing_value >= value_threshold])
                 
-                distribution_search_delta_delta = self.get_node_distribution(0.0, 0.0, 0.0, param_delta, ProblemType.DECISION, value_threshold)
-                percent_witness_found = sum([distribution_percentage for knapsack_problem_hash, distribution_percentage in distribution_search_delta_delta.items() if KnapsackProblem.problems_by_hash[knapsack_problem_hash]._standing_value >= value_threshold])
+                # distribution_search_delta_delta = self.get_node_distribution(0.0, 0.0, 0.0, param_delta, ProblemType.DECISION, value_threshold)
+                # percent_witness_found = sum([distribution_percentage for knapsack_problem_hash, distribution_percentage in distribution_search_delta_delta.items() if KnapsackProblem.problems_by_hash[knapsack_problem_hash]._standing_value >= value_threshold])
 
                 # # HACK to use true delta
                 # percent_witness_found_delta_0 = percent_witness_found
@@ -632,6 +721,8 @@ class KnapsackProblem():
                 node_distribution[optimal_non_dominated_terminal_node] += percent_find_optimal_non_dominated / len(non_dominated_optimal_terminal_nodes)
         
         elif problem_type is ProblemType.DECISION:
+            if value_threshold is None:
+                raise ValueError("`value_threshold` must be set in Decision task.")  # TODO tidy
             if param_alpha != 0.0:  # TODO move this up so all in the same if part
                 for knapsack_problem_hash, distribution_percentage in distribution_search_delta_0.items():
                     if KnapsackProblem.problems_by_hash[knapsack_problem_hash]._standing_value >= value_threshold:
@@ -659,15 +750,16 @@ class KnapsackProblem():
                         node_distribution[knapsack_problem_hash] += percent_not_find_optimal * percent_remove_dominance * ((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma)))) / transformed_divisor_non_dominated * distribution
 
         if not math.isclose(sum(node_distribution.values()), 1.00):
-            raise Exception('node distribution must equal 1')
+            raise RuntimeError('node distribution must equal 1')
 
         self.distributions_by_hash[node_distribution_hash] = node_distribution
 
         return self.distributions_by_hash[node_distribution_hash]
 
 
-    def print_node_distribution(self, distribution: dict[int, float], print_threshold: float = 0.0001) -> None:
-        """
+    def print_node_distribution(self, distribution: dict[int, float], parameters: tuple[float, float, float, float] | None = None, print_threshold: float = 0.0001) -> None:
+        """ Print the knapsack node distribution with all relevant information.
+
         Prints the distribution (as a percentage of 1) that someone will end in each terminal node from this given Knapsack Problem.
         This is based on the supplied distribution, using the alpha, beta, gamma, and delta parameters to calculate the distribution.
         Node distribution only considers feasible (at or under capacity) terminal (no more items will fit in the knapsack) nodes.
@@ -680,12 +772,28 @@ class KnapsackProblem():
         ----------
         distribution : dict[int, float]
             the probability distribution of each node, by node hash and percentage
+        parameters : tuple[float, float, float, float] | None
+            the parameters used to calculate the distribution (default = None)
         print_threshold : float
             print any node with a distribution greater than to equal to the print threshold (default = 0.0001)
 
         Returns: None
         """
-        print(", ".join([str(knapsack_item) for knapsack_item in self.knapsack_items]))
+        print("Inputs\n")
+
+        if parameters: print(f"Parameters: α = {parameters[0]}, β = {parameters[1]}, γ = {parameters[2]}, δ = {parameters[3]}\n")
+
+        print("Knapsack Problem Variant: Optimisation\n")
+
+        print("Items: " + ", ".join([str(knapsack_item) for knapsack_item in self.knapsack_items]) + "\n")
+
+        print(f"Budget: {self._knapsack_capacity}\n")
+
+        print("-------------------------------------\n")
+
+        print("Output\n")
+
+        print("Terminal Nodes (*** for optimal):")
 
         distribution = dict(sorted(distribution.items(), key=lambda x: x[1], reverse=True))
 
@@ -711,13 +819,55 @@ class KnapsackProblem():
                 if item_inclusion_string != str([0 if hash(repr(master_node_knapsack_item)) in terminal_node_item_hashes else 1 for master_node_knapsack_item in self.knapsack_items]):
                     raise Exception("There is a difference between inclusion strings. This is HOPEFULLY as one method accounts for repeated items and the other does not. If this is occurring without repeated items, this is a problem.")
                 
+                if knapsack_problem._master_knapsack is None:
+                    raise RuntimeError
                 print(f"{item_inclusion_string} - Σv: {knapsack_problem._standing_value}, Σw: {knapsack_problem._master_knapsack._knapsack_capacity - knapsack_problem._knapsack_capacity} / {knapsack_problem._master_knapsack._knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{" ***" if hash(knapsack_problem) in knapsack_problem._master_knapsack._optimal_terminal_nodes else ""}")
     
-        print(sum(distribution.values()))
-        print(len(distribution))
+        print()
+        print(f"Total Distribution: {sum(distribution.values())}\n")
+        print(f"Number of Terminal Nodes: {len(distribution)}\n")
 
 
     def solve_decision_variant(self, param_beta: float, param_alpha: float, param_gamma: float, param_delta: float, value_threshold: int) -> float:
+        # TODO add docstring here
+        """
+        Docstring for solve_decision_variant
+        
+        :param self: Description
+        :param param_beta: Description
+        :type param_beta: float
+        :param param_alpha: Description
+        :type param_alpha: float
+        :param param_gamma: Description
+        :type param_gamma: float
+        :param param_delta: Description
+        :type param_delta: float
+        :param value_threshold: Description
+        :type value_threshold: int
+        :return: Description
+        :rtype: float
+        """
+
+        if not isinstance(param_beta, float):
+            raise TypeError(f"`param_beta` must be of type float, but is {type(param_beta)}.")
+        if not 0.0 <= param_beta < 1.0:
+            raise ValueError(f"`param_beta` be greater than or equal to 0.0 and less than 1.0, but is {param_beta}.")
+        
+        if not isinstance(param_alpha, float):
+            raise TypeError(f"`param_alpha` must be of type float, but is {type(param_alpha)}.")
+        if not 0.0 <= param_alpha <= 1.0:
+            raise ValueError(f"`param_alpha` be greater than or equal to 0.0 and less than or equal to 1.0 for the decision problem, but is {param_alpha}.")
+        
+        if not isinstance(param_gamma, float):
+            raise TypeError(f"`param_gamma` must be of type float, but is {type(param_gamma)}.")
+        if not 0.0 <= param_gamma < 1.0:
+            raise ValueError(f"`param_gamma` be greater than or equal to 0.0 and less than 1.0, but is {param_gamma}.")
+        
+        if not isinstance(param_delta, float):
+            raise TypeError(f"`param_delta` must be of type float, but is {type(param_delta)}.")
+        if not 0.0 <= param_delta <= 1.0:            
+            raise ValueError(f"`param_delta` be greater than or equal to 0.0 and less than or equal to 1.0, but is {param_delta}.")
+        
         distribution_search_delta_delta = self.get_node_distribution(param_beta, param_alpha, param_gamma, param_delta, ProblemType.DECISION, value_threshold)
         percent_witness_found = sum([distribution_percentage for knapsack_problem_hash, distribution_percentage in distribution_search_delta_delta.items() if KnapsackProblem.problems_by_hash[knapsack_problem_hash]._standing_value >= value_threshold])
         return percent_witness_found
