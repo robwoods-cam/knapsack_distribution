@@ -1,4 +1,6 @@
 import unittest
+import sys
+import io
 import hashlib
 
 from knapsack_cls import KnapsackItem, KnapsackProblem
@@ -62,6 +64,8 @@ class TestKnapsackItem(unittest.TestCase):
     
     def test_stable_hash(self):
         """ Test the hash is stable between Python runs. """
+        
+        KnapsackItem._knapsack_items_count = 0  # Hack to account that tests can be run out of order or may fail, changing the number of KnapsackItems created.
 
         value = 10
         weight = 30
@@ -71,9 +75,12 @@ class TestKnapsackItem(unittest.TestCase):
 
         hash_string = str(value) + "," + str(weight) + "," + str(knapsack_item_id)
         full_hash = hashlib.sha256(hash_string.encode("utf-8")).digest()
-        knapsack_hash = int.from_bytes(full_hash[:7], 'big')
+        knapsack_item_hash = int.from_bytes(full_hash[:7], 'big')
 
-        self.assertEqual(hash(knapsack_item), knapsack_hash)        
+        self.assertEqual(hash(knapsack_item), knapsack_item_hash)
+        self.assertEqual(hash(knapsack_item), 17689981930889819)
+        self.assertEqual(knapsack_item._full_hash, full_hash)
+        self.assertEqual(knapsack_item._full_hash, b'>\xd8\xf1\xe1\x12\xe2[+\xe1|_\xdb\xe4\x825\x007\xab\xc5`\xaa\x10\x81\xc3\xbd\x8c\xff\x8e1\x8c;\x15')
     
     def test_create_from_list(self):
         """ Test the creation of multiple instances using the classmethod `create_from_list`. """
@@ -91,9 +98,13 @@ class TestKnapsackItem(unittest.TestCase):
 
             hash_string = str(values[i]) + "," + str(weights[i]) + "," + str(knapsack_items_count + i)
             full_hash = hashlib.sha256(hash_string.encode("utf-8")).digest()
-            knapsack_hash = int.from_bytes(full_hash[:7], 'big')        
+            knapsack_item_hash = int.from_bytes(full_hash[:7], 'big')
                 
-            self.assertEqual(hash(knapsack_item), knapsack_hash)
+            self.assertEqual(hash(knapsack_item), knapsack_item_hash)
+    
+        self.assertEqual(hash(knapsack_items[0]), 52575527697059388)
+        self.assertEqual(hash(knapsack_items[1]), 35253537267539874)
+        self.assertEqual(hash(knapsack_items[2]), 49977518110941115)
 
     def test_comparison(self):
         """ Test the comparison between Knapsack Items.
@@ -222,14 +233,36 @@ class TestKnapsackProblem(unittest.TestCase):
 
     def test_init(self):
         """ Test the creation of an instance. """
-        pass  # TODO
+
+        KnapsackItem._knapsack_items_count = 0  # Hack to account that tests can be run out of order or may fail, changing the number of KnapsackItems created.
+
+        knapsack_items = [KnapsackItem(100, 50), KnapsackItem(50, 30), KnapsackItem(30, 60), KnapsackItem(140, 120), KnapsackItem(40, 25)]
+        knapsack_capacity = 100
+        KnapsackProblem.create(knapsack_items, knapsack_capacity)
 
     def test_stable_hash(self):
         """ Test the hash is stable between Python runs. """
-        pass  # TODO
+
+        KnapsackItem._knapsack_items_count = 0  # Hack to account that tests can be run out of order or may fail, changing the number of KnapsackItems created.
+
+        knapsack_items = [KnapsackItem(100, 50), KnapsackItem(50, 30), KnapsackItem(30, 60), KnapsackItem(140, 120), KnapsackItem(40, 25)]
+        knapsack_capacity = 100
+        knapsack_problem = KnapsackProblem.create(knapsack_items, knapsack_capacity)
+        
+        hash_string = str(sorted(knapsack_items)) + "," + str(knapsack_capacity) + "," + str(0) + "," + str([]) + "," + str(hash(None))
+        full_hash = hashlib.sha256(hash_string.encode("utf-8")).digest()
+        knapsack_hash = int.from_bytes(full_hash[:7], 'big')
+
+        self.assertEqual(hash(knapsack_problem), knapsack_hash)        
+        self.assertEqual(hash(knapsack_problem), 39192840581773738)
+        self.assertEqual(knapsack_problem._full_hash, full_hash)
+        self.assertEqual(knapsack_problem._full_hash, b'\x8b=\xaeL\x9dy\xaa\x90QCQ\x1dJ\x03\xfc\xf9\xb2=3(\xce\xf1\xf0\xbdJf\xc0\x82v\xb6\x9d\xc9')
 
     def test_get_node_distribution(self):
-        """ This test is based on model 2.0 TODO"""
+        """ Test the node distribution calculation.
+        
+        This test is based on model 2.0 and for a given knapsack that was manually calculated.
+        """
 
         KnapsackItem._knapsack_items_count = 0  # Hack to account that tests can be run out of order or may fail, changing the number of KnapsackItems created.
 
@@ -242,7 +275,7 @@ class TestKnapsackProblem(unittest.TestCase):
         param_gamma = 0.2
         param_delta = 0.6
 
-        node_distribution = knapsack_problem.get_node_distribution(param_beta, param_alpha, param_gamma, param_delta)
+        node_distribution = knapsack_problem.get_node_distribution(param_alpha, param_beta, param_gamma, param_delta)
 
         self.assertAlmostEqual(sum(node_distribution.values()), 1.0)
 
@@ -267,11 +300,10 @@ class TestKnapsackProblem(unittest.TestCase):
         self.assertEqual(KnapsackProblem.problems_by_hash[19588103317795958]._standing_knapsack_items, [knapsack_items[2], knapsack_items[4]])
 
     def test_get_node_distribution_paper_appendix_1_optimisation(self):
-        """ This test is based on model 2.0
+        """ Test the node distribution calculation.
         
-        This test uses the knapsack example in Chapter 1 Appendix 1 (8.1) for the optimisation problem 
-        
-        TODO"""
+        This test is based on model 2.0 and uses the knapsack example in Chapter 1 Appendix 1 (8.1) for the optimisation problem that was manually calculated.
+        """
 
         KnapsackItem._knapsack_items_count = 0  # Hack to account that tests can be run out of order or may fail, changing the number of KnapsackItems created.
 
@@ -284,7 +316,7 @@ class TestKnapsackProblem(unittest.TestCase):
         param_gamma = 0.4
         param_delta = 0.5
 
-        node_distribution = knapsack_problem.get_node_distribution(param_beta, param_alpha, param_gamma, param_delta)
+        node_distribution = knapsack_problem.get_node_distribution(param_alpha, param_beta, param_gamma, param_delta)
 
         self.assertAlmostEqual(sum(node_distribution.values()), 1.0)
 
@@ -306,12 +338,41 @@ class TestKnapsackProblem(unittest.TestCase):
         self.assertEqual(KnapsackProblem.problems_by_hash[11599976948146986]._standing_knapsack_items, [knapsack_items[1], knapsack_items[2]])
 
         
+    def test_print_node_distribution(self):
+        """ Test the printed message from print_node_distribution.
+
+        This test is based on model 2.0 and uses the knapsack example in Chapter 1 Appendix 1 (8.1) for the optimisation problem.        
+        """
+
+        KnapsackItem._knapsack_items_count = 0  # Hack to account that tests can be run out of order or may fail, changing the number of KnapsackItems created.
+
+        knapsack_items = [KnapsackItem(12, 7), KnapsackItem(8, 5), KnapsackItem(14, 8), KnapsackItem(9, 4)]
+        knapsack_capacity = 16
+        knapsack_problem = KnapsackProblem.create(knapsack_items, knapsack_capacity)
+
+        param_alpha = 0.70
+        param_beta = 0.75
+        param_gamma = 0.4
+        param_delta = 0.5
+
+        node_distribution = knapsack_problem.get_node_distribution(param_alpha, param_beta, param_gamma, param_delta)
+        
+        original = sys.stdout
+        try:
+            buf = io.StringIO()
+            sys.stdout = buf
+            knapsack_problem.print_node_distribution(node_distribution, (param_alpha, param_beta, param_gamma, param_delta), 0.01)
+            expected_print = "Inputs\n\nParameters: α = 0.7, β = 0.75, γ = 0.4, δ = 0.5\n\nKnapsack Problem Variant: Optimisation\n\nItems: (v: 12, w: 7), (v: 8, w: 5), (v: 14, w: 8), (v: 9, w: 4)\n\nBudget: 16\n\n-------------------------------------\n\nOutput\n\nTerminal Nodes (*** for optimal):\n[1, 1, 0, 1] - Σv: 29, Σw: 16 / 16 - 74.873% ***\n[1, 0, 1, 0] - Σv: 26, Σw: 15 / 16 - 15.341%\n[0, 0, 1, 1] - Σv: 23, Σw: 12 / 16 - 8.380%\n[0, 1, 1, 0] - Σv: 22, Σw: 13 / 16 - 1.406%\n\nTotal Distribution: 1.0\n\nNumber of Terminal Nodes: 4\n\n"
+            
+            self.assertEqual(buf.getvalue(), expected_print)
+        finally:
+            sys.stdout = original
+
+    
     def test_get_node_distribution_paper_appendix_1_decision(self):
-        """ This test is based on Model 2
+        """ Test the decision witness finding calculation.
         
-        This test uses the knapsack example in Chapter 1 Appendix 1 (8.1) for the decision problem 
-        
-        TODO"""
+        This test is based on model 2.0 and uses the knapsack example in Chapter 1 Appendix 1 (8.1) for the decision problem that was manually calculated."""
 
         knapsack_items = [KnapsackItem(12, 7), KnapsackItem(8, 5), KnapsackItem(14, 8), KnapsackItem(9, 4)]
         knapsack_capacity = 16
@@ -323,7 +384,7 @@ class TestKnapsackProblem(unittest.TestCase):
         param_delta = 0.5
         value_threshold = 27
 
-        satisfiable_percent = knapsack_problem.solve_decision_variant(param_beta, param_alpha, param_gamma, param_delta, value_threshold)
+        satisfiable_percent = knapsack_problem.solve_decision_variant(param_alpha, param_beta, param_gamma, param_delta, value_threshold)
         
         self.assertAlmostEqual(satisfiable_percent, 0.9001191238392088)
 

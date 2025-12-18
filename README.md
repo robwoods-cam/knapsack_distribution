@@ -118,7 +118,7 @@ parameters = param_alpha, param_beta, param_gamma, param_delta = 0.7, 0.6, 0.4, 
 
 # Compute distribution
 knapsack_distribution = knapsack_problem.get_node_distribution(
-    param_beta, param_alpha, param_gamma, param_delta
+    param_alpha, param_alpha, param_gamma, param_delta
 )
 
 # Print distribution
