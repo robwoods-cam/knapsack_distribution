@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=77.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "knapsack_distribution"
+version = "2.0.1-alpha-2"
+description = "A tool for calculating the expected distribution of solutions for any specified instance of the Knapsack Problem, as reached by a single decision-maker or an entire population."
+readme = "README.md"
+requires-python = ">=3.14"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
+
+authors = [
+  { name = "Robert Woods", email = "rmw73@cam.ac.uk" },
+  { name = "Robert Woods", email = "robert.mark.woods@gmail.com" },
+  { name = "Roman Berlanger", email = "rb2057@cam.ac.uk" }
+]
+maintainers = [
+  { name = "Robert Woods", email = "rmw73@cam.ac.uk" },
+  { name = "Robert Woods", email = "robert.mark.woods@gmail.com" }
+]
+
+keywords = [
+    "knapsack",
+    "knapsack-problem",
+    "np-hard",
+    "decision-making",
+    "probabilistic-model",
+    "choice-distribution",
+    "computational-complexity",
+    "behavioral-economics",
+    "behavioural-economics",
+]
+
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.14",
+  "Operating System :: OS Independent",
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Mathematics",
+  "Topic :: Scientific/Engineering :: Information Analysis"
+]
+
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/yourname/knapsack-distribution"
+Repository = "https://github.com/yourname/knapsack-distribution"
+Issues = "https://github.com/yourname/knapsack-distribution/issues"
+Documentation = "https://github.com/yourname/knapsack-distribution#readme"
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"knapsack_distribution" = ["py.typed"] 
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
