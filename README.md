@@ -6,7 +6,7 @@ A tool for calculating the _expected distribution_ of solutions for _any specifi
 
 ## 📌 Overview
 
-This repository provides a Python implementation for modeling and analysing decision-making in the **Knapsack Problem**. It uses a **cached tree-based approach** with dominance checks and probabilistic node distribution.
+This repository provides a Python implementation for modeling and analysing decision-making in instances of the **Knapsack Problem**. It uses a **cached tree-based approach** with dominance checks and probabilistic node distribution.
 
 This model may be the first measure to give a truly instance-specific metric of difficulty to the *NP-hard* knapsack problem, not relying on heuristics to calculate the “average” difficulty of similar instances. It is also the first to predict choice distributions when individuals fail to find the optimum.
 
@@ -33,7 +33,7 @@ The module primarily consists of two classes:
       * Unique item ID and hash for efficient comparisons.
       * Dominance checks between items.
 
-2.  **`KnapsackProblem`**
+2.  **`KnapsackInstance`**
 
       * Represents a knapsack problem instance or a node in the search tree. Each node tracks:
           * Remaining capacity.
@@ -43,7 +43,7 @@ The module primarily consists of two classes:
           * Terminal nodes and optimal solutions.
       * Computes probabilistic distributions of reaching each terminal node.
  
-Note: `KnapsackItem` and `KnapsackProblem` both use custom hashing functions. It may be the case that `self == other` and `hash(self) == hash(other)` give different results. As such, both `KnapsackItem` and `KnapsackProblem` should not be used directly as an element in a set or as a key in a dict. The hash should manually be used instead.
+Note: `KnapsackItem` and `KnapsackInstance` both use custom hashing functions. It may be the case that `self == other` and `hash(self) == hash(other)` give different results. As such, both `KnapsackItem` and `KnapsackInstance` should not be used directly as an element in a set or as a key in a dict. The hash should manually be used instead.
 
 -----
 
@@ -66,7 +66,7 @@ Note: `KnapsackItem` and `KnapsackProblem` both use custom hashing functions. It
 
   - **Caching**
 
-      * Uses hash-based caching (`problems_by_hash`, `distributions_by_hash`) to avoid redundant computations.
+      * Uses hash-based caching (`problem_by_hash`, `distribution_by_hash`) to avoid redundant computations.
       * Hashes use the last 7-bytes of a SHA256 hash, so they are stable across Python runs. Data can be saved and compared.
 
 -----
@@ -88,7 +88,7 @@ Note: `KnapsackItem` and `KnapsackProblem` both use custom hashing functions. It
 
   - Python **3.14+** (due to modern type hints)
   - Python **64-bit** for int64 hashing 
-  - Standard library only (`sys`, `platform`, `math`, `hashlib`, `enum`)
+  - Standard library only
 
 -----
 
@@ -97,7 +97,7 @@ Note: `KnapsackItem` and `KnapsackProblem` both use custom hashing functions. It
 ### Example:
 
 ```python
-from knapsack_cls import KnapsackItem, KnapsackProblem
+from knapsack_distribution import KnapsackItem, KnapsackInstance
 
 # Define knapsack items
 knapsack_items = [
@@ -111,18 +111,18 @@ knapsack_items = [
 knapsack_capacity = 957
 
 # Create knapsack problem
-knapsack_problem = KnapsackProblem.create(knapsack_items, knapsack_capacity)
+knapsack_instance = KnapsackInstance.create(knapsack_items, knapsack_capacity)
 
 # Define parameters
 parameters = param_alpha, param_beta, param_gamma, param_delta = 0.7, 0.6, 0.4, 0.6
 
 # Compute distribution
-knapsack_distribution = knapsack_problem.get_node_distribution(
-    param_alpha, param_alpha, param_gamma, param_delta
+knapsack_distribution = knapsack_instance.get_node_distribution(
+    param_alpha, param_beta, param_gamma, param_delta
 )
 
 # Print distribution
-knapsack_problem.print_node_distribution(knapsack_distribution, parameters, print_threshold=0.01)
+knapsack_instance.print_node_distribution(knapsack_distribution, parameters, print_threshold=0.01)
 ```
 
 Output:
