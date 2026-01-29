@@ -6,7 +6,7 @@ from src.knapsack_distribution import KnapsackItem, __version__
 class TestModelVersion(unittest.TestCase):
 
     def test_version(self):
-        """ Check that the version of `knapsack_cls` matches the model used to calculate these tests.
+        """ Check that the version of `knapsack_distribution` matches the model used to calculate these tests.
         
         Some of these tests use a manually calculated knapsack instance for comparison to the output
         of the package. They rely on a specific knapsack instance, specific parameters, and a specific
