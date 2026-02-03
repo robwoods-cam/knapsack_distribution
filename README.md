@@ -13,7 +13,24 @@ This model may be the first measure to give a truly instance-specific metric of 
 The knapsack problem is a classic combinatorial optimisation problem where the goal is to maximise the total value of items placed in a knapsack without exceeding its weight capacity (or if a target can be reach by a set of items within the budget constraint).
 
 The formulation of the optimisation variant is shown below:
-<div align="center"><img width="801" height="253" alt="image" src="https://github.com/user-attachments/assets/dbc1dae7-f22d-4c40-a16d-c124548a1803" /></div>
+
+
+$$
+\max \sum_{i \in I} v_i x_i
+$$
+
+subject to
+
+$$
+\sum_{i \in I} x_i w_i \le C, \qquad x_i \in \{0,1\}
+$$
+
+Where $v_i$ and $w_i$ are, respectively, the value and weight associated with each
+item $i$ in a set of available items $I$.
+The variable $x_i$ is the binary decision variable that represents the choice to include
+item $i$ in the knapsack (if $x_i = 1$) or exclude it (if $x_i = 0$).
+$C$ is the capacity constraint of the knapsack.
+
 
 This tool takes a knapsack instance (featuring a set of items with values and weights, a capacity limit, and a target if the decision variant of the knapsack problem) and four individual parameters.
 
