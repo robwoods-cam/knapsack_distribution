@@ -21,8 +21,9 @@ import unittest
 import sys
 import io
 
-from src.knapsack_distribution import KnapsackItem, KnapsackInstance, get_node_distribution, print_node_distribution, solve_decision_variant, __version__
+from src.knapsack_distribution import KnapsackItem, KnapsackInstance, ProblemType, get_node_distribution, print_node_distribution, solve_decision_variant, __version__
 from src.knapsack_distribution.distribution import _get_knapsack_item_dominance_matrix, _validate_parameters_and_value_threshold
+
 
 class TestModelVersion(unittest.TestCase):
 
@@ -38,13 +39,7 @@ class TestModelVersion(unittest.TestCase):
         self.assertEqual(__version__.split(".")[1], "0")
 
 
-class TestDistribution(unittest.TestCase):
-    
-    # TODO
-    # def test_validate_parameters_and_value_threshold(self):
-    #     """ Test `_validate_parameters_and_value_threshold` """
-
-
+class TestDominanceMatrix(unittest.TestCase):
     def test_item_dominance(self):
         """ Test dominance of `KnapsackItem`s.
 
@@ -108,6 +103,30 @@ class TestDistribution(unittest.TestCase):
 
             _get_knapsack_item_dominance_matrix(knapsack_items)
 
+
+
+class TestValidation(unittest.TestCase):
+    def test_validate_parameters_and_value_threshold(self):
+        """ Test `_validate_parameters_and_value_threshold` 
+        
+        Does not cover all possibilities, but many."""
+        safe_alpha = safe_beta = safe_gamma = safe_delta = 0.5
+        _validate_parameters_and_value_threshold(safe_alpha, safe_beta, safe_gamma, safe_delta, ProblemType.OPTIMISATION, None)
+
+        with self.assertRaises(ValueError):
+            _validate_parameters_and_value_threshold(-0.5, safe_beta, safe_gamma, safe_delta, ProblemType.OPTIMISATION, None)
+        
+        with self.assertRaises(ValueError):
+            _validate_parameters_and_value_threshold(safe_alpha, -0.5, safe_gamma, safe_delta, ProblemType.OPTIMISATION, None)
+
+        with self.assertRaises(ValueError):
+            _validate_parameters_and_value_threshold(safe_alpha, safe_beta, -0.5, safe_delta, ProblemType.OPTIMISATION, None)
+
+        with self.assertRaises(ValueError):
+            _validate_parameters_and_value_threshold(safe_alpha, safe_beta, safe_gamma, -0.5, ProblemType.OPTIMISATION, None)
+
+
+class TestDistribution(unittest.TestCase):
     def test_get_node_distribution(self):
         """ Test the node distribution calculation.
         
@@ -143,11 +162,11 @@ class TestDistribution(unittest.TestCase):
         self.assertAlmostEqual(node_distribution[3854787489353282], 0.0129266429474177)
         self.assertAlmostEqual(node_distribution[19588103317795958],  0.00332578084417862)
 
-        self.assertEqual(KnapsackInstance.instance_by_hash[25120288178553251]._standing_knapsack_items, [knapsack_items[0], knapsack_items[1]])
-        self.assertEqual(KnapsackInstance.instance_by_hash[6357217347003608]._standing_knapsack_items, [knapsack_items[0], knapsack_items[4]])
-        self.assertEqual(KnapsackInstance.instance_by_hash[7741808502296642]._standing_knapsack_items, [knapsack_items[1], knapsack_items[4]])
-        self.assertEqual(KnapsackInstance.instance_by_hash[3854787489353282]._standing_knapsack_items, [knapsack_items[1], knapsack_items[2]])
-        self.assertEqual(KnapsackInstance.instance_by_hash[19588103317795958]._standing_knapsack_items, [knapsack_items[2], knapsack_items[4]])
+        self.assertEqual(KnapsackInstance.instance_by_hash[25120288178553251].standing_knapsack_items, [knapsack_items[0], knapsack_items[1]])
+        self.assertEqual(KnapsackInstance.instance_by_hash[6357217347003608].standing_knapsack_items, [knapsack_items[0], knapsack_items[4]])
+        self.assertEqual(KnapsackInstance.instance_by_hash[7741808502296642].standing_knapsack_items, [knapsack_items[1], knapsack_items[4]])
+        self.assertEqual(KnapsackInstance.instance_by_hash[3854787489353282].standing_knapsack_items, [knapsack_items[1], knapsack_items[2]])
+        self.assertEqual(KnapsackInstance.instance_by_hash[19588103317795958].standing_knapsack_items, [knapsack_items[2], knapsack_items[4]])
 
     def test_get_node_distribution_paper_appendix_1_optimisation(self):
         """ Test the node distribution calculation.
@@ -182,10 +201,10 @@ class TestDistribution(unittest.TestCase):
         self.assertAlmostEqual(node_distribution[67530635375991832], 0.08380264655104011)
         self.assertAlmostEqual(node_distribution[11599976948146986], 0.014061199579533638)
 
-        self.assertEqual(KnapsackInstance.instance_by_hash[19607764745246483]._standing_knapsack_items, [knapsack_items[0], knapsack_items[1], knapsack_items[3]])
-        self.assertEqual(KnapsackInstance.instance_by_hash[27586698572505746]._standing_knapsack_items, [knapsack_items[0], knapsack_items[2]])
-        self.assertEqual(KnapsackInstance.instance_by_hash[67530635375991832]._standing_knapsack_items, [knapsack_items[2], knapsack_items[3]])
-        self.assertEqual(KnapsackInstance.instance_by_hash[11599976948146986]._standing_knapsack_items, [knapsack_items[1], knapsack_items[2]])
+        self.assertEqual(KnapsackInstance.instance_by_hash[19607764745246483].standing_knapsack_items, [knapsack_items[0], knapsack_items[1], knapsack_items[3]])
+        self.assertEqual(KnapsackInstance.instance_by_hash[27586698572505746].standing_knapsack_items, [knapsack_items[0], knapsack_items[2]])
+        self.assertEqual(KnapsackInstance.instance_by_hash[67530635375991832].standing_knapsack_items, [knapsack_items[2], knapsack_items[3]])
+        self.assertEqual(KnapsackInstance.instance_by_hash[11599976948146986].standing_knapsack_items, [knapsack_items[1], knapsack_items[2]])
 
     def test_print_node_distribution(self):
         """ Test the printed message from print_node_distribution.
