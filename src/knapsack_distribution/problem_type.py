@@ -1,24 +1,25 @@
 """
-Knapsack Choice Distribution Tool.
+Tools for calculating probabilistic choice distributions in knapsack problem instances.
 
-Provides classes for the calculation of probabilistic choice distribution in knapsack problem instances.
+This module provides the `ProblemType` Enum.  
 See README.md for full documentation and examples.
+
 
 Copyright
 ---------
-© 2025 Robert Woods - Code and implementation  
-© 2025 Roman Berlanger - Model and concept  
+© 2025 Robert Woods - Code and implementation
+© 2025 Roman Berlanger - Model and concept
+
 
 License
 -------
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero
-General Public License as published by the Free Software Foundation, version 3.
-
-See README.md and LICENSE for further details.
+This program is free software under the GNU Affero General Public License v3.  
+See the LICENSE file for full terms.
 """
 
 
 from enum import Enum, auto
+
 
 class ProblemType(Enum):
     """ The types of Knapsack Problem.

@@ -1,14 +1,23 @@
-# UPDATE 2026 01 31
-# It is working with the new format, need to:
-# 1) Speed test to compare
-# 2) Tidy massively
-# 3) Double check everything... Make sure it passes all the tests
-# 4) This is new version
+"""
+Tools for calculating probabilistic choice distributions in knapsack problem instances.
+
+This module provides the the key functions `get_node_distribution`, `print_node_distribution`,
+`solve_decision_variant`, and supporting functionality.  
+See README.md for full documentation and examples.
 
 
+Copyright
+---------
+© 2025 Robert Woods - Code and implementation
+© 2025 Roman Berlanger - Model and concept
 
-# TODO turn these into functions that take a list of items and turn into a dict of sets with key knapsack item hash and
-# value a set of knapsack item hashes which dominate the knapsack with the hash matching the key.
+
+License
+-------
+This program is free software under the GNU Affero General Public License v3.  
+See the LICENSE file for full terms.
+"""
+
 
 import hashlib
 import math

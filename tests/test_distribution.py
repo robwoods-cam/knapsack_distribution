@@ -1,3 +1,22 @@
+"""
+Tools for calculating probabilistic choice distributions in knapsack problem instances.
+
+This module provides the tests for functionality. These tests use the unittest package.
+See README.md for full documentation and examples.
+
+
+Copyright
+---------
+© 2025 Robert Woods - Code and implementation
+© 2025 Roman Berlanger - Model and concept
+
+
+License
+-------
+This program is free software under the GNU Affero General Public License v3.  
+See the LICENSE file for full terms.
+"""
+
 import unittest
 import sys
 import io
