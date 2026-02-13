@@ -26,12 +26,43 @@ from .knapsack_item import KnapsackItem
 from .knapsack_instance import KnapsackInstance
 from .problem_type import ProblemType
 
+
 def _get_knapsack_item_dominance_matrix(knapsack_items: list[KnapsackItem]) -> dict[int, set[int]]:
+    """ Sets the `KnapsackItem`s that dominate this `KnapsackItem`. TODO 
+    
+    #     Sets `_dominating_knapsack_item_hashes` to a `set` of `hash`es for all `knapsack_item`s in `knapsack_items` that dominate it.
+    #     A knapsack item dominates another if both the value is greater than the other value and the weight is less than the other weight and at least one is strictly.
+
+    Checks to see if any `KnapsackItem` in `knapsack_items` dominates this `KnapsackItem`.
+        
+    #     A knapsack item dominates another if both the value is greater than the other value and the weight is less than the other weight and at least one is strictly.
+
+    #     Parameters
+    #     ----------
+    #     knapsack_items : list[KnapsackItem]
+    #         A list of `KnapsacksItems` to be checked for dominance
+
+    #     Raises
+    #     ------
+    #     TypeError
+    #         if a list of `KnapsackItem`s is not supplied
+    #     ValueError
+    #         if the list of dominating `KnapsackItem`s includes this `KnapsackItem` (self dominance) TODO
+
+    #     Returns
+    #     -------
+#         knapsack_item_dominance_matrix : dict[int, set[int]]
+            TODO
+    
+    """
 
     knapsack_item_dominance_matrix: dict[int, set[int]] = {}
 
     if not (isinstance(knapsack_items, list) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)):
         raise TypeError("knapsack_items must be a list of `KnapsackItem`")
+    
+    if len(knapsack_items) != len(set([hash(knapsack_item) for knapsack_item in knapsack_items])):
+        raise ValueError("Repeated `KnapsackItem` cannot be set in dominance matrix.")
     
     for knapsack_item_1 in knapsack_items:
         knapsack_item_dominance_matrix[hash(knapsack_item_1)] = set()
@@ -120,58 +151,52 @@ def _validate_parameters_and_value_threshold(param_alpha: float, param_beta: flo
         raise ValueError(f"`problem_type` expected to be `DECISION` or `OPTIMISATION`, is {problem_type}.")
 
 
-"""
-Hash:
-    _full_hash: bytes
-
-`KnapsackInstance`
-Pure knapsack instance:
-    _knapsack_items: list[KnapsackItem]
-    _knapsack_capacity: int
-    _validate_knapsack_parameters() put in both because would be split
-
-`KnapsackInstanceNode`
-Knapsack solving (looking down):
-    _is_terminal_node: bool
-    _child_nodes: list[tuple[KnapsackItem, KnapsackInstance]] | None
-    _terminal_nodes: set[int]
-    _optimal_terminal_nodes: set[int]
-    _optimal_terminal_node_value: int
-    _create_child_nodes()
-
-`KnapsackInstanceNode`
-Master (global) knapsack solving status (but from point of view of current node) (looking up):
-    _standing_value: int
-    _standing_knapsack_items: list[KnapsackItem]
-    _master_knapsack: KnapsackInstance | None
-    _validate_knapsack_parameters() put in both because would be split
-
-`Move this all part of the algo`
-# Sp these would form part of  get_node_distribution (or new functions called in get_node_distribution)
-More algo:
-    _non_dominated_items: set[int] (looking down)
-    _included_dominated_items: list[KnapsackItem] (looking up)
-    _is_dominated: bool (looking up)
-    # the above will need to be calculated first, then we can calculate these
-    _non_dominated_terminal_nodes @ property (why) (looking down)
-    _non_dominated_optimal_terminal_nodes @ property (why) (looking down)
-
-`Module`
-Entirely algo:
-    _validate_parameters_and_value_threshold()
-    get_node_distribution()
-    print_node_distribution()
-    solve_decision_variant()
-
-Tree related:
-    instance_by_hash
-    distribution_by_hash
-
-"""
-
-
 def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, problem_type: ProblemType = ProblemType.OPTIMISATION, value_threshold: int | None = None) -> dict[int, float]:
+    """ Get the distribution that someone will end in each terminal node from this given Knapsack Instance.
+    Get the distribution (as a percentage of 1) that someone will end in each terminal node from this given Knapsack Instance.
+    This is based on the supplied alpha, beta, gamma, and delta parameters.
+    Node distribution only considers feasible (at or under capacity) terminal (no more items will fit in the knapsack) nodes.
+
     
+    #     Non-dominated terminal nodes is from the perspective that no items are added from this node onwards which are dominated.
+    #     Dominated items may already have been added, as long as no further items are added.
+    #     Mathematically, in these nodes, there are no-dominated items included unless the item was already included at this node.
+    
+    Parameters
+    ----------
+    param_alpha : float
+        search/global optimisation parameter
+        alpha = 0 is a special case where we do not jump to the optimal at all, used for 'item-by-item' search
+    param_beta : float
+        density preference/local optimisation parameter
+    param_gamma : float
+        complexity aversion/weight preference parameter
+    param_delta : float
+        item-level rationality parameter
+    problem_type: ProblemType
+        if the problem is optimisation or decision (default = optimisation)
+    value_threshold: int | None
+        the value target for the decision problem
+
+    Raises
+    ------
+    RuntimeError
+        if the sum of node distribution is not close to 1
+    TypeError
+        `param_alpha`, `param_beta`, `param_gamma`, or `param_delta` are not float
+        `problem_type` is not `ProblemType`
+        `value_threshold` is not int for decision task and None for optimisation task 
+    ValueError
+        `problem_type` is not recognised
+        `param_alpha`, `param_beta`, `param_gamma`, or `param_delta` are not in valid range
+        `value_threshold` is negative for decision task
+    
+    Returns
+    -------
+    node_distribution : dict[int, float]
+        A dict of the feasible terminal nodes with the percentage that one will end in each terminal node based on `beta`
+    """
+
     distribution_by_hash: dict[int, dict[int, float]] = {}
     included_dominated_items_by_hash: dict[int, list[KnapsackItem]] = {} 
     knapsack_item_dominance_matrix: dict[int, set[int]] = _get_knapsack_item_dominance_matrix(knapsack_instance.knapsack_items)
