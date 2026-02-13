@@ -19,4 +19,4 @@ See the LICENSE file for full terms.
 
 # The major and minor version numbers should match the model version. Patch should be used for fixes and features
 # added to the code.
-__version__ = "2.0.1"
+__version__ = "2.0.2"
