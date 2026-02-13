@@ -34,10 +34,14 @@ from ._version import __version__
 from .knapsack_item import KnapsackItem
 from .knapsack_instance import KnapsackInstance
 from .problem_type import ProblemType
+from .distribution import get_node_distribution, print_node_distribution, solve_decision_variant
 
 __all__ = [
     "KnapsackItem",
     "KnapsackInstance",
     "ProblemType",
+    "get_node_distribution",
+    "print_node_distribution",
+    "solve_decision_variant",
     "__version__"
 ]

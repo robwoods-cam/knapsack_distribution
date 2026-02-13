@@ -35,7 +35,7 @@ class KnapsackItem():
     knapsack_item_id:
         an id for the knapsack item unique to the knapsack problem instance (not to the value and weight of the knapsack item)
     __hash__ : int
-        unique hash for the knapsack item (repeated items have a unique hash based on their item id)
+        unique hash for the knapsack item (repeated items have a unique hash based on their `knapsack_item_id`)
 
 
     Notes
@@ -51,7 +51,7 @@ class KnapsackItem():
     _density: float
     _knapsack_item_id: int
     _full_hash: bytes
-    _dominating_knapsack_item_hashes: set[int] | None  # move out of class
+    # _dominating_knapsack_item_hashes: set[int] | None  # move out of class
 
     # class attributes
     _knapsack_items_count: int = 0
@@ -131,7 +131,7 @@ class KnapsackItem():
         # Each item gets it own unique hash, even if it matches in value and weight. Merging of identical nodes happens in final print processing
         hash_string = str(self._value) + "," + str(self._weight) + "," + str(self._knapsack_item_id)
         self._full_hash = hashlib.sha256(hash_string.encode("utf-8")).digest()
-        self._dominating_knapsack_item_hashes = None
+        # self._dominating_knapsack_item_hashes = None
 
         KnapsackItem._knapsack_items_count += 1
 
@@ -183,74 +183,74 @@ class KnapsackItem():
         """ Returns the representation including the knapsack_item_id """
         return f'KnapsackItem(value = {self._value}, weight = {self._weight}, id = {self._knapsack_item_id})'
 
-    def set_dominance(self, knapsack_items: list[KnapsackItem]) -> None:  # move out of class
-        """ Sets the `KnapsackItem`s that dominate this `KnapsackItem`.
+    # def set_dominance(self, knapsack_items: list[KnapsackItem]) -> None:  # move out of class
+    #     """ Sets the `KnapsackItem`s that dominate this `KnapsackItem`.
         
-        Sets `_dominating_knapsack_item_hashes` to a `set` of `hash`es for all `knapsack_item`s in `knapsack_items` that dominate it.
-        A knapsack item dominates another if both the value is greater than the other value and the weight is less than the other weight and at least one is strictly.
+    #     Sets `_dominating_knapsack_item_hashes` to a `set` of `hash`es for all `knapsack_item`s in `knapsack_items` that dominate it.
+    #     A knapsack item dominates another if both the value is greater than the other value and the weight is less than the other weight and at least one is strictly.
 
-        Parameters
-        ----------
-        knapsack_items : list[KnapsackItem]
-            A list of `KnapsacksItems` to be checked for dominance
+    #     Parameters
+    #     ----------
+    #     knapsack_items : list[KnapsackItem]
+    #         A list of `KnapsacksItems` to be checked for dominance
 
-        Raises
-        ------
-        TypeError
-            if a list of `KnapsackItem`s is not supplied
-        ValueError
-            if the list of dominating `KnapsackItem`s includes this `KnapsackItem` (self dominance)
+    #     Raises
+    #     ------
+    #     TypeError
+    #         if a list of `KnapsackItem`s is not supplied
+    #     ValueError
+    #         if the list of dominating `KnapsackItem`s includes this `KnapsackItem` (self dominance)
 
-        Returns
-        -------
-            None
-        """
-        if not (isinstance(knapsack_items, list) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)):
-            raise TypeError("knapsack_items must be a list of `KnapsackItem`")
+    #     Returns
+    #     -------
+    #         None
+    #     """
+    #     if not (isinstance(knapsack_items, list) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)):
+    #         raise TypeError("knapsack_items must be a list of `KnapsackItem`")
 
-        if hash(self) in [hash(knapsack_item) for knapsack_item in knapsack_items]:
-            raise ValueError("`KnapsackItem` cannot be dominated by itself.")
+    #     if hash(self) in [hash(knapsack_item) for knapsack_item in knapsack_items]:
+    #         raise ValueError("`KnapsackItem` cannot be dominated by itself.")
 
-        # must use hashes for sets due to the reworked hash function
-        self._dominating_knapsack_item_hashes = set()
+    #     # must use hashes for sets due to the reworked hash function
+    #     self._dominating_knapsack_item_hashes = set()
 
-        for knapsack_item in knapsack_items:
-            if (knapsack_item.value > self.value and knapsack_item.weight <= self.weight) or (knapsack_item.value >= self.value and knapsack_item.weight < self.weight) or (knapsack_item == self and knapsack_item.knapsack_item_id < self.knapsack_item_id):
-                self._dominating_knapsack_item_hashes.add(hash(knapsack_item))
+    #     for knapsack_item in knapsack_items:
+    #         if (knapsack_item.value > self.value and knapsack_item.weight <= self.weight) or (knapsack_item.value >= self.value and knapsack_item.weight < self.weight) or (knapsack_item == self and knapsack_item.knapsack_item_id < self.knapsack_item_id):
+    #             self._dominating_knapsack_item_hashes.add(hash(knapsack_item))
 
-    def check_dominance(self, knapsack_items: list[KnapsackItem]) -> bool:  # move out of class
-        """ Checks to see if any `KnapsackItem` in `knapsack_items` dominates this `KnapsackItem`.
+    # def check_dominance(self, knapsack_items: list[KnapsackItem]) -> bool:  # move out of class
+    #     """ Checks to see if any `KnapsackItem` in `knapsack_items` dominates this `KnapsackItem`.
         
-        A knapsack item dominates another if both the value is greater than the other value and the weight is less than the other weight and at least one is strictly.
-        `set_dominance` must be run prior to `check_dominance`
+    #     A knapsack item dominates another if both the value is greater than the other value and the weight is less than the other weight and at least one is strictly.
+    #     `set_dominance` must be run prior to `check_dominance`
         
-        Parameters
-        ----------
-        knapsack_items : list[KnapsackItem]
-            A list of `KnapsacksItems` to be checked for dominance
+    #     Parameters
+    #     ----------
+    #     knapsack_items : list[KnapsackItem]
+    #         A list of `KnapsacksItems` to be checked for dominance
 
-        Raises
-        ------
-        TypeError
-            if a list of `KnapsackItem`s is not supplied
-        RuntimeError
-            if `check_dominance` is called before dominance is set (using `set_dominance`)
+    #     Raises
+    #     ------
+    #     TypeError
+    #         if a list of `KnapsackItem`s is not supplied
+    #     RuntimeError
+    #         if `check_dominance` is called before dominance is set (using `set_dominance`)
 
-        Returns
-            is dominated : bool
-            if the item is dominated by any of the `KnapsackItems` in `knapsack_items`
-        -------
+    #     Returns
+    #         is dominated : bool
+    #         if the item is dominated by any of the `KnapsackItems` in `knapsack_items`
+    #     -------
 
-        """
-        if not (isinstance(knapsack_items, list) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)):
-            raise TypeError("knapsack_items must be a list of `KnapsackItem`.")
+    #     """
+    #     if not (isinstance(knapsack_items, list) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)):
+    #         raise TypeError("knapsack_items must be a list of `KnapsackItem`.")
 
-        if self._dominating_knapsack_item_hashes is None:
-            raise RuntimeError('Dominating knapsack items have not been set yet. Use `set_dominance()` first.')
+    #     if self._dominating_knapsack_item_hashes is None:
+    #         raise RuntimeError('Dominating knapsack items have not been set yet. Use `set_dominance()` first.')
 
-        for knapsack_item in knapsack_items:
-            if hash(knapsack_item) in self._dominating_knapsack_item_hashes:
-                return True
+    #     for knapsack_item in knapsack_items:
+    #         if hash(knapsack_item) in self._dominating_knapsack_item_hashes:
+    #             return True
 
-        return False
+    #     return False
 
