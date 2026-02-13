@@ -17,7 +17,7 @@ from .knapsack_item import KnapsackItem
 from .knapsack_instance import KnapsackInstance
 from .problem_type import ProblemType
 
-def get_knapsack_item_dominance_matrix(knapsack_items: list[KnapsackItem]) -> dict[int, set[int]]:
+def _get_knapsack_item_dominance_matrix(knapsack_items: list[KnapsackItem]) -> dict[int, set[int]]:
 
     knapsack_item_dominance_matrix: dict[int, set[int]] = {}
 
@@ -159,177 +159,176 @@ Tree related:
     distribution_by_hash
 
 """
-distribution_by_hash: dict[int, dict[int, float]] = {}
-included_dominated_items_by_hash: dict[int, list[KnapsackItem]] = {} 
-knapsack_item_dominance_matrix: dict[int, set[int]] | None = None
+
 
 def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, problem_type: ProblemType = ProblemType.OPTIMISATION, value_threshold: int | None = None) -> dict[int, float]:
-    global knapsack_item_dominance_matrix
-    if knapsack_item_dominance_matrix is None:
-        knapsack_item_dominance_matrix = get_knapsack_item_dominance_matrix(knapsack_instance.knapsack_items)
-        pass
-
-    if not included_dominated_items_by_hash:
-        for terminal_node in knapsack_instance.terminal_nodes:
-            included_dominated_items: list[KnapsackItem] = [standing_knapsack_item for standing_knapsack_item in KnapsackInstance.instance_by_hash[terminal_node].standing_knapsack_items if any(hash(knapsack_item_x) in knapsack_item_dominance_matrix[hash(standing_knapsack_item)] for knapsack_item_x in KnapsackInstance.instance_by_hash[terminal_node].knapsack_items)]
-            included_dominated_items_by_hash[terminal_node] = included_dominated_items
-
-
-    def _search_for_optimum(node_distribution: dict[int, float], param_delta: float, param_alpha: float) -> dict[int, float]:
-        """ Return the distribution of optimal terminal nodes reached in the search.
-
-        The search for the optimum is hard, it requires 'remembering' all possible terminal nodes.
-        When there are multiple optimal terminal nodes, an individual is indifferent between the nodes, so they are selected
-        with equal probability.
-        """
-
-        percent_find_optimal_full_set = ((1 - param_delta) * math.exp((1 - len(knapsack_instance.terminal_nodes)) * ((1 - param_alpha) / param_alpha)))
-        percent_find_optimal_non_dominated = (param_delta * math.exp((1 - len(non_dominated_terminal_nodes)) * ((1 - param_alpha) / param_alpha)))
-
-        for optimal_terminal_node in knapsack_instance.optimal_terminal_nodes:
-            node_distribution[optimal_terminal_node] = percent_find_optimal_full_set / len(knapsack_instance.optimal_terminal_nodes)
-
-        for optimal_non_dominated_terminal_node in non_dominated_optimal_terminal_nodes:
-            node_distribution[optimal_non_dominated_terminal_node] += percent_find_optimal_non_dominated / len(non_dominated_optimal_terminal_nodes)
-
-        return node_distribution
-
-    def _search_for_witness(node_distribution: dict[int, float], value_threshold: int, param_delta: float, param_alpha: float) -> dict[int, float]:
-        """ Return the distribution of witness nodes reached in the search. 
-
-        The search for a witness is easier than an optima, as any witness found along the way is sufficient. You do not need
-        to remember and compare all possible terminal nodes..
-        The search is split between fully removing dominated terminal nodes (from the perspective of this node) and including
-        all dominated terminal nodes, in a ratio based on the individuals delta.
-        When there are multiple witness terminal nodes, the probability of finding each one is given by the likelihood
-        of running into the given terminal node in the search by adding 'random' items.
-        """
-
-        distribution_search_delta_0 = get_node_distribution(knapsack_instance, 0.0, 0.0, 0.0, 0.0, ProblemType.DECISION, value_threshold)
-        distribution_search_delta_1 = get_node_distribution(knapsack_instance, 0.0, 0.0, 0.0, 1.0, ProblemType.DECISION, value_threshold)
-        percent_witness_found_delta_0 = sum([distribution_percentage for knapsack_instance_hash, distribution_percentage in distribution_search_delta_0.items() if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value >= value_threshold])
-        percent_witness_found_delta_1 = sum([distribution_percentage for knapsack_instance_hash, distribution_percentage in distribution_search_delta_1.items() if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value >= value_threshold])
-
-        # If to use true 'deltas', rather than a delta weighted average between delta-0 and delta-1
-        # distribution_search_delta_delta = self.get_node_distribution(0.0, 0.0, 0.0, param_delta, ProblemType.DECISION, value_threshold)
-        # percent_witness_found = sum([distribution_percentage for knapsack_instance_hash, distribution_percentage in distribution_search_delta_delta.items() if KnapsackInstance.instance_by_hash[knapsack_instance_hash]._standing_value >= value_threshold])
-        # percent_witness_found_delta_0 = percent_witness_found
-        # percent_witness_found_delta_1 = percent_witness_found
-
-        percent_find_optimal_full_set = ((1 - param_delta) * (percent_witness_found_delta_0 ** ((1 - param_alpha) / param_alpha)))
-        percent_find_optimal_non_dominated = (param_delta * (percent_witness_found_delta_1 ** ((1 - param_alpha) / param_alpha)))            
-
-        for knapsack_instance_hash, distribution_percentage in distribution_search_delta_0.items():
-            if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value >= value_threshold:
-                node_distribution[knapsack_instance_hash] = percent_find_optimal_full_set * (distribution_percentage / percent_witness_found_delta_0)
-
-        for knapsack_instance_hash, distribution_percentage in distribution_search_delta_1.items():
-            if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value >= value_threshold:
-                node_distribution[knapsack_instance_hash] += percent_find_optimal_non_dominated * (distribution_percentage / percent_witness_found_delta_1)
-
-        return node_distribution
-
-    def _add_item_and_continue_search(node_distribution: dict[int, float], param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, problem_type: ProblemType, value_threshold: int | None) -> dict[int, float]:
-        """ Return the node_distribution of subnodes based on adding an item to the knapsack and continuing the search.
-
-        The item added is probabilistic, based on the individuals alpha, beta, gamma, and delta. 
-        """
-
-        if knapsack_instance.child_nodes:
-
-            percent_remove_dominance = param_delta
-            percent_not_remove_dominance = 1.0 - param_delta
-
-            transformed_divisor_all = sum((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma))) for knapsack_item, _ in knapsack_instance.child_nodes)
-            transformed_divisor_non_dominated = sum((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma))) if hash(knapsack_item) in non_dominated_items else 0.0 for knapsack_item, _ in knapsack_instance.child_nodes)
-
-            for knapsack_item, child_node in knapsack_instance.child_nodes:
-                child_distribution = get_node_distribution(child_node, param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
-                for knapsack_instance_hash, distribution in child_distribution.items():
-                    if knapsack_instance_hash not in node_distribution:
-                        node_distribution[knapsack_instance_hash] = 0.0
-                    node_distribution[knapsack_instance_hash] += percent_not_find_optimal * percent_not_remove_dominance * ((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma)))) / transformed_divisor_all * distribution
-
-                    # Add the additional weights for non-dominate items
-                    if hash(knapsack_item) in non_dominated_items:
-                        node_distribution[knapsack_instance_hash] += percent_not_find_optimal * percent_remove_dominance * ((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma)))) / transformed_divisor_non_dominated * distribution
-
-        return node_distribution
-
-    # If the distribution for the node with the given parameters already exists, return the node to prevent recalculation
-    hash_string = str(param_beta)  + "," + str(param_alpha) + "," + str(param_gamma) + "," + str(param_delta) + "," + str(problem_type) + "," + str(hash(knapsack_instance))
-    full_hash = hashlib.sha256(hash_string.encode("utf-8")).digest()
-    node_distribution_hash = int.from_bytes(full_hash[:7], 'big')
     
-    if node_distribution_hash in distribution_by_hash:
-        return distribution_by_hash[node_distribution_hash]
-    
-    # Otherwise, validate the parameters and calculate the node distribution
-    _validate_parameters_and_value_threshold(param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
-    node_distribution: dict[int, float] = {}
+    distribution_by_hash: dict[int, dict[int, float]] = {}
+    included_dominated_items_by_hash: dict[int, list[KnapsackItem]] = {} 
+    knapsack_item_dominance_matrix: dict[int, set[int]] = _get_knapsack_item_dominance_matrix(knapsack_instance.knapsack_items)
+
+    for terminal_node in knapsack_instance.terminal_nodes:
+        included_dominated_items: list[KnapsackItem] = [standing_knapsack_item for standing_knapsack_item in KnapsackInstance.instance_by_hash[terminal_node].standing_knapsack_items if any(hash(knapsack_item_x) in knapsack_item_dominance_matrix[hash(standing_knapsack_item)] for knapsack_item_x in KnapsackInstance.instance_by_hash[terminal_node].knapsack_items)]
+        included_dominated_items_by_hash[terminal_node] = included_dominated_items
+
+    def _get_child_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, problem_type: ProblemType = ProblemType.OPTIMISATION, value_threshold: int | None = None) -> dict[int, float]:
+        def _search_for_optimum(node_distribution: dict[int, float], param_delta: float, param_alpha: float) -> dict[int, float]:
+            """ Return the distribution of optimal terminal nodes reached in the search.
+
+            The search for the optimum is hard, it requires 'remembering' all possible terminal nodes.
+            When there are multiple optimal terminal nodes, an individual is indifferent between the nodes, so they are selected
+            with equal probability.
+            """
+
+            percent_find_optimal_full_set = ((1 - param_delta) * math.exp((1 - len(knapsack_instance.terminal_nodes)) * ((1 - param_alpha) / param_alpha)))
+            percent_find_optimal_non_dominated = (param_delta * math.exp((1 - len(non_dominated_terminal_nodes)) * ((1 - param_alpha) / param_alpha)))
+
+            for optimal_terminal_node in knapsack_instance.optimal_terminal_nodes:
+                node_distribution[optimal_terminal_node] = percent_find_optimal_full_set / len(knapsack_instance.optimal_terminal_nodes)
+
+            for optimal_non_dominated_terminal_node in non_dominated_optimal_terminal_nodes:
+                node_distribution[optimal_non_dominated_terminal_node] += percent_find_optimal_non_dominated / len(non_dominated_optimal_terminal_nodes)
+
+            return node_distribution
+
+        def _search_for_witness(node_distribution: dict[int, float], value_threshold: int, param_delta: float, param_alpha: float) -> dict[int, float]:
+            """ Return the distribution of witness nodes reached in the search. 
+
+            The search for a witness is easier than an optima, as any witness found along the way is sufficient. You do not need
+            to remember and compare all possible terminal nodes..
+            The search is split between fully removing dominated terminal nodes (from the perspective of this node) and including
+            all dominated terminal nodes, in a ratio based on the individuals delta.
+            When there are multiple witness terminal nodes, the probability of finding each one is given by the likelihood
+            of running into the given terminal node in the search by adding 'random' items.
+            """
+
+            distribution_search_delta_0 = _get_child_node_distribution(knapsack_instance, 0.0, 0.0, 0.0, 0.0, ProblemType.DECISION, value_threshold)
+            distribution_search_delta_1 = _get_child_node_distribution(knapsack_instance, 0.0, 0.0, 0.0, 1.0, ProblemType.DECISION, value_threshold)
+            percent_witness_found_delta_0 = sum([distribution_percentage for knapsack_instance_hash, distribution_percentage in distribution_search_delta_0.items() if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value >= value_threshold])
+            percent_witness_found_delta_1 = sum([distribution_percentage for knapsack_instance_hash, distribution_percentage in distribution_search_delta_1.items() if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value >= value_threshold])
+
+            # If to use true 'deltas', rather than a delta weighted average between delta-0 and delta-1
+            # distribution_search_delta_delta = self._get_child_node_distribution(0.0, 0.0, 0.0, param_delta, ProblemType.DECISION, value_threshold)
+            # percent_witness_found = sum([distribution_percentage for knapsack_instance_hash, distribution_percentage in distribution_search_delta_delta.items() if KnapsackInstance.instance_by_hash[knapsack_instance_hash]._standing_value >= value_threshold])
+            # percent_witness_found_delta_0 = percent_witness_found
+            # percent_witness_found_delta_1 = percent_witness_found
+
+            percent_find_optimal_full_set = ((1 - param_delta) * (percent_witness_found_delta_0 ** ((1 - param_alpha) / param_alpha)))
+            percent_find_optimal_non_dominated = (param_delta * (percent_witness_found_delta_1 ** ((1 - param_alpha) / param_alpha)))            
+
+            for knapsack_instance_hash, distribution_percentage in distribution_search_delta_0.items():
+                if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value >= value_threshold:
+                    node_distribution[knapsack_instance_hash] = percent_find_optimal_full_set * (distribution_percentage / percent_witness_found_delta_0)
+
+            for knapsack_instance_hash, distribution_percentage in distribution_search_delta_1.items():
+                if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value >= value_threshold:
+                    node_distribution[knapsack_instance_hash] += percent_find_optimal_non_dominated * (distribution_percentage / percent_witness_found_delta_1)
+
+            return node_distribution
+
+        def _add_item_and_continue_search(node_distribution: dict[int, float], param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, problem_type: ProblemType, value_threshold: int | None) -> dict[int, float]:
+            """ Return the node_distribution of subnodes based on adding an item to the knapsack and continuing the search.
+
+            The item added is probabilistic, based on the individuals alpha, beta, gamma, and delta. 
+            """
+
+            if knapsack_instance.child_nodes:
+
+                percent_remove_dominance = param_delta
+                percent_not_remove_dominance = 1.0 - param_delta
+
+                transformed_divisor_all = sum((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma))) for knapsack_item, _ in knapsack_instance.child_nodes)
+                transformed_divisor_non_dominated = sum((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma))) if hash(knapsack_item) in non_dominated_items else 0.0 for knapsack_item, _ in knapsack_instance.child_nodes)
+
+                for knapsack_item, child_node in knapsack_instance.child_nodes:
+                    child_distribution = _get_child_node_distribution(child_node, param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
+                    for knapsack_instance_hash, distribution in child_distribution.items():
+                        if knapsack_instance_hash not in node_distribution:
+                            node_distribution[knapsack_instance_hash] = 0.0
+                        node_distribution[knapsack_instance_hash] += percent_not_find_optimal * percent_not_remove_dominance * ((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma)))) / transformed_divisor_all * distribution
+
+                        # Add the additional weights for non-dominate items
+                        if hash(knapsack_item) in non_dominated_items:
+                            node_distribution[knapsack_instance_hash] += percent_not_find_optimal * percent_remove_dominance * ((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma)))) / transformed_divisor_non_dominated * distribution
+
+            return node_distribution
+
+        # If the distribution for the node with the given parameters already exists, return the node to prevent recalculation
+        hash_string = str(param_beta)  + "," + str(param_alpha) + "," + str(param_gamma) + "," + str(param_delta) + "," + str(problem_type) + "," + str(hash(knapsack_instance))
+        full_hash = hashlib.sha256(hash_string.encode("utf-8")).digest()
+        node_distribution_hash = int.from_bytes(full_hash[:7], 'big')
+        
+        if node_distribution_hash in distribution_by_hash:
+            return distribution_by_hash[node_distribution_hash]
+        
+        # Otherwise, validate the parameters and calculate the node distribution
+        _validate_parameters_and_value_threshold(param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
+        node_distribution: dict[int, float] = {}
 
 
-    # TODO calc:
-    # NOTE FIXME this may all need to happen before any distribution search happens, Im not sure.
-    # Maybe can just take the master node knapsack and do for all its terminal nodes, because I think it only matters for them
+        # TODO calc:
+        # NOTE FIXME this may all need to happen before any distribution search happens, Im not sure.
+        # Maybe can just take the master node knapsack and do for all its terminal nodes, because I think it only matters for them
 
-    # _non_dominated_items
-    non_dominated_items: set[int] = set()
-    for i, knapsack_item in enumerate(knapsack_instance.knapsack_items):        
-        if not any(hash(knapsack_item_x) in knapsack_item_dominance_matrix[hash(knapsack_item)] for knapsack_item_x in knapsack_instance.knapsack_items[:i] + knapsack_instance.knapsack_items[i + 1:]):
-            non_dominated_items.add(hash(knapsack_item))
-    
-    # TODO fix (if can) issue is this need to be done 
-    # TODO this probably doesnt need to be redone
-    included_dominated_items: list[KnapsackItem] = [standing_knapsack_item for standing_knapsack_item in knapsack_instance.standing_knapsack_items if any(hash(knapsack_item_x) in knapsack_item_dominance_matrix[hash(standing_knapsack_item)] for knapsack_item_x in knapsack_instance.knapsack_items)]
-    included_dominated_items_by_hash[hash(knapsack_instance)] = included_dominated_items
-    
-    # _non_dominated_terminal_nodes
-    #     return [terminal_node for terminal_node in self._terminal_nodes if not KnapsackInstance.instance_by_hash[terminal_node]._is_dominated or all(terminal_included_dominated_item in self._included_dominated_items for terminal_included_dominated_item in KnapsackInstance.instance_by_hash[terminal_node]._included_dominated_items)] 
-    
-    non_dominated_terminal_nodes = [terminal_node for terminal_node in knapsack_instance.terminal_nodes if not len(included_dominated_items_by_hash[terminal_node]) >= 1 or all(terminal_included_dominated_item in included_dominated_items for terminal_included_dominated_item in included_dominated_items_by_hash[terminal_node])] 
-    
-    # _non_dominated_optimal_terminal_nodes
-    #   return [terminal_node for terminal_node in self._optimal_terminal_nodes if not KnapsackInstance.instance_by_hash[terminal_node]._is_dominated or all(terminal_included_dominated_item in self._included_dominated_items for terminal_included_dominated_item in KnapsackInstance.instance_by_hash[terminal_node]._included_dominated_items)]
+        # _non_dominated_items
+        non_dominated_items: set[int] = set()
+        for i, knapsack_item in enumerate(knapsack_instance.knapsack_items):        
+            if not any(hash(knapsack_item_x) in knapsack_item_dominance_matrix[hash(knapsack_item)] for knapsack_item_x in knapsack_instance.knapsack_items[:i] + knapsack_instance.knapsack_items[i + 1:]):
+                non_dominated_items.add(hash(knapsack_item))
+        
+        # TODO fix (if can) issue is this need to be done 
+        # TODO this probably doesnt need to be redone
+        included_dominated_items: list[KnapsackItem] = [standing_knapsack_item for standing_knapsack_item in knapsack_instance.standing_knapsack_items if any(hash(knapsack_item_x) in knapsack_item_dominance_matrix[hash(standing_knapsack_item)] for knapsack_item_x in knapsack_instance.knapsack_items)]
+        included_dominated_items_by_hash[hash(knapsack_instance)] = included_dominated_items
+        
+        # _non_dominated_terminal_nodes
+        #     return [terminal_node for terminal_node in self._terminal_nodes if not KnapsackInstance.instance_by_hash[terminal_node]._is_dominated or all(terminal_included_dominated_item in self._included_dominated_items for terminal_included_dominated_item in KnapsackInstance.instance_by_hash[terminal_node]._included_dominated_items)] 
+        
+        non_dominated_terminal_nodes = [terminal_node for terminal_node in knapsack_instance.terminal_nodes if not len(included_dominated_items_by_hash[terminal_node]) >= 1 or all(terminal_included_dominated_item in included_dominated_items for terminal_included_dominated_item in included_dominated_items_by_hash[terminal_node])] 
+        
+        # _non_dominated_optimal_terminal_nodes
+        #   return [terminal_node for terminal_node in self._optimal_terminal_nodes if not KnapsackInstance.instance_by_hash[terminal_node]._is_dominated or all(terminal_included_dominated_item in self._included_dominated_items for terminal_included_dominated_item in KnapsackInstance.instance_by_hash[terminal_node]._included_dominated_items)]
 
-    non_dominated_optimal_terminal_nodes = [terminal_node for terminal_node in knapsack_instance.optimal_terminal_nodes if not len(included_dominated_items_by_hash[terminal_node]) >= 1 or all(terminal_included_dominated_item in included_dominated_items for terminal_included_dominated_item in included_dominated_items_by_hash[terminal_node])]
+        non_dominated_optimal_terminal_nodes = [terminal_node for terminal_node in knapsack_instance.optimal_terminal_nodes if not len(included_dominated_items_by_hash[terminal_node]) >= 1 or all(terminal_included_dominated_item in included_dominated_items for terminal_included_dominated_item in included_dominated_items_by_hash[terminal_node])]
 
-    # If this is a terminal node, there are no child nodes, so the distribution stops here.
-    if knapsack_instance.is_terminal_node:
-        node_distribution[hash(knapsack_instance)] = 1.0
-        return node_distribution
+        # If this is a terminal node, there are no child nodes, so the distribution stops here.
+        if knapsack_instance.is_terminal_node:
+            node_distribution[hash(knapsack_instance)] = 1.0
+            return node_distribution
 
-    # Brute force search for optimum / witness
+        # Brute force search for optimum / witness
 
-    # Depending on what problem type we need to search all terminal nodes and find the best (optimisation), or just find a terminal which meets a threshold (decision)
-    if problem_type is ProblemType.OPTIMISATION:
-        node_distribution = _search_for_optimum(node_distribution, param_delta, param_alpha)
+        # Depending on what problem type we need to search all terminal nodes and find the best (optimisation), or just find a terminal which meets a threshold (decision)
+        if problem_type is ProblemType.OPTIMISATION:
+            node_distribution = _search_for_optimum(node_distribution, param_delta, param_alpha)
 
-    elif problem_type is ProblemType.DECISION:
-        if value_threshold is None:
-             raise Exception("TODO: Decision Problem must have a value threshold!")
-        # If alpha is 0.0, we never find a witness.
-        # To prevent infinite recursions, we skip the search entirely.
-        if param_alpha != 0.0:
-            node_distribution = _search_for_witness(node_distribution, value_threshold, param_delta, param_alpha)
+        elif problem_type is ProblemType.DECISION:
+            if value_threshold is None:
+                raise Exception("TODO: Decision Problem must have a value threshold!")
+            # If alpha is 0.0, we never find a witness.
+            # To prevent infinite recursions, we skip the search entirely.
+            if param_alpha != 0.0:
+                node_distribution = _search_for_witness(node_distribution, value_threshold, param_delta, param_alpha)
 
-    else:
-        raise ValueError(f"Unexpected problem type: {problem_type}")
+        else:
+            raise ValueError(f"Unexpected problem type: {problem_type}")
 
-    percent_not_find_optimal = 1.0 - sum(node_distribution.values())
+        percent_not_find_optimal = 1.0 - sum(node_distribution.values())
 
-    # Brute search failed - Add an item to simplify the task
-    if percent_not_find_optimal:
-        node_distribution = _add_item_and_continue_search(node_distribution, param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
+        # Brute search failed - Add an item to simplify the task
+        if percent_not_find_optimal:
+            node_distribution = _add_item_and_continue_search(node_distribution, param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
 
-    # Check the sum distribution equals 1
-    if not math.isclose(sum(node_distribution.values()), 1.0):
-        raise RuntimeError('node distribution must equal 1')
+        # Check the sum distribution equals 1
+        if not math.isclose(sum(node_distribution.values()), 1.0):
+            raise RuntimeError('node distribution must equal 1')
 
-    # Store the node distribution so that if this node is reached by another path, the distribution can be fetched without additional calculations 
-    distribution_by_hash[node_distribution_hash] = node_distribution
+        # Store the node distribution so that if this node is reached by another path, the distribution can be fetched without additional calculations 
+        distribution_by_hash[node_distribution_hash] = node_distribution
 
-    return distribution_by_hash[node_distribution_hash]  # is node_distribution
+        return distribution_by_hash[node_distribution_hash]  # is node_distribution
+
+    return _get_child_node_distribution(knapsack_instance, param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
 
 
 def print_node_distribution(knapsack_instance_x: KnapsackInstance, distribution: dict[int, float], parameters: tuple[float, float, float, float] | None = None, print_threshold: float = 0.0001) -> None:
