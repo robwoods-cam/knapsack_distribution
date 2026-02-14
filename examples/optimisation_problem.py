@@ -1,4 +1,4 @@
-from knapsack_distribution import KnapsackItem, KnapsackInstance, ProblemType
+from knapsack_distribution import KnapsackItem, KnapsackInstance, ProblemType, get_node_distribution, print_node_distribution
 
 def main() -> None:
     # Define knapsack items
@@ -19,12 +19,13 @@ def main() -> None:
     parameters = param_alpha, param_beta, param_gamma, param_delta = 0.7, 0.6, 0.4, 0.6
 
     # Compute distribution
-    knapsack_distribution = knapsack_instance.get_node_distribution(
-        param_alpha, param_beta, param_gamma, param_delta, problem_type=ProblemType.OPTIMISATION
+    knapsack_distribution = get_node_distribution(knapsack_instance,
+                                                  param_alpha, param_beta, param_gamma, param_delta,
+                                                  problem_type=ProblemType.OPTIMISATION
     )
 
     # Print distribution
-    knapsack_instance.print_node_distribution(knapsack_distribution, parameters, print_threshold=0.01)
+    print_node_distribution(knapsack_instance, knapsack_distribution, parameters, print_threshold=0.01)
 
 
 if __name__ == "__main__":

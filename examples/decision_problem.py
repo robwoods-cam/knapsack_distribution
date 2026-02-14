@@ -1,4 +1,4 @@
-from knapsack_distribution import KnapsackItem, KnapsackInstance
+from knapsack_distribution import KnapsackItem, KnapsackInstance, solve_decision_variant
 
 def main() -> None:
     # Define knapsack items
@@ -22,7 +22,7 @@ def main() -> None:
     param_alpha, param_beta, param_gamma, param_delta = 0.7, 0.6, 0.4, 0.6
 
     # Solve the decision variant
-    find_witness_probability = knapsack_instance.solve_decision_variant(param_alpha, param_beta, param_gamma, param_delta, value_threshold=knapsack_target)
+    find_witness_probability = solve_decision_variant(knapsack_instance, param_alpha, param_beta, param_gamma, param_delta, value_threshold=knapsack_target)
 
     # Print the result
     print(f"The probability of finding a witness is: {find_witness_probability * 100:.2f}%.")
