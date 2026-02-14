@@ -162,11 +162,11 @@ class TestDistribution(unittest.TestCase):
         self.assertAlmostEqual(node_distribution[3854787489353282], 0.0129266429474177)
         self.assertAlmostEqual(node_distribution[19588103317795958],  0.00332578084417862)
 
-        self.assertEqual(KnapsackInstance.instance_by_hash[25120288178553251].standing_knapsack_items, [knapsack_items[0], knapsack_items[1]])
-        self.assertEqual(KnapsackInstance.instance_by_hash[6357217347003608].standing_knapsack_items, [knapsack_items[0], knapsack_items[4]])
-        self.assertEqual(KnapsackInstance.instance_by_hash[7741808502296642].standing_knapsack_items, [knapsack_items[1], knapsack_items[4]])
-        self.assertEqual(KnapsackInstance.instance_by_hash[3854787489353282].standing_knapsack_items, [knapsack_items[1], knapsack_items[2]])
-        self.assertEqual(KnapsackInstance.instance_by_hash[19588103317795958].standing_knapsack_items, [knapsack_items[2], knapsack_items[4]])
+        self.assertEqual(KnapsackInstance.instance_by_hash[25120288178553251].standing_knapsack_items, (knapsack_items[0], knapsack_items[1]))
+        self.assertEqual(KnapsackInstance.instance_by_hash[6357217347003608].standing_knapsack_items, (knapsack_items[0], knapsack_items[4]))
+        self.assertEqual(KnapsackInstance.instance_by_hash[7741808502296642].standing_knapsack_items, (knapsack_items[1], knapsack_items[4]))
+        self.assertEqual(KnapsackInstance.instance_by_hash[3854787489353282].standing_knapsack_items, (knapsack_items[1], knapsack_items[2]))
+        self.assertEqual(KnapsackInstance.instance_by_hash[19588103317795958].standing_knapsack_items, (knapsack_items[2], knapsack_items[4]))
 
     def test_get_node_distribution_paper_appendix_1_optimisation(self):
         """ Test the node distribution calculation.
@@ -201,10 +201,10 @@ class TestDistribution(unittest.TestCase):
         self.assertAlmostEqual(node_distribution[67530635375991832], 0.08380264655104011)
         self.assertAlmostEqual(node_distribution[11599976948146986], 0.014061199579533638)
 
-        self.assertEqual(KnapsackInstance.instance_by_hash[19607764745246483].standing_knapsack_items, [knapsack_items[0], knapsack_items[1], knapsack_items[3]])
-        self.assertEqual(KnapsackInstance.instance_by_hash[27586698572505746].standing_knapsack_items, [knapsack_items[0], knapsack_items[2]])
-        self.assertEqual(KnapsackInstance.instance_by_hash[67530635375991832].standing_knapsack_items, [knapsack_items[2], knapsack_items[3]])
-        self.assertEqual(KnapsackInstance.instance_by_hash[11599976948146986].standing_knapsack_items, [knapsack_items[1], knapsack_items[2]])
+        self.assertEqual(KnapsackInstance.instance_by_hash[19607764745246483].standing_knapsack_items, (knapsack_items[0], knapsack_items[1], knapsack_items[3]))
+        self.assertEqual(KnapsackInstance.instance_by_hash[27586698572505746].standing_knapsack_items, (knapsack_items[0], knapsack_items[2]))
+        self.assertEqual(KnapsackInstance.instance_by_hash[67530635375991832].standing_knapsack_items, (knapsack_items[2], knapsack_items[3]))
+        self.assertEqual(KnapsackInstance.instance_by_hash[11599976948146986].standing_knapsack_items, (knapsack_items[1], knapsack_items[2]))
 
     def test_print_node_distribution(self):
         """ Test the printed message from print_node_distribution.

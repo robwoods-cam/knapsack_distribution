@@ -27,7 +27,7 @@ from .knapsack_instance import KnapsackInstance
 from .problem_type import ProblemType
 
 
-def _get_knapsack_item_dominance_matrix(knapsack_items: list[KnapsackItem]) -> dict[int, set[int]]:
+def _get_knapsack_item_dominance_matrix(knapsack_items: list[KnapsackItem] | tuple[KnapsackItem, ...]) -> dict[int, set[int]]:
     """ Sets the `KnapsackItem`s that dominate this `KnapsackItem`. TODO 
     
     #     Sets `_dominating_knapsack_item_hashes` to a `set` of `hash`es for all `knapsack_item`s in `knapsack_items` that dominate it.
@@ -58,7 +58,7 @@ def _get_knapsack_item_dominance_matrix(knapsack_items: list[KnapsackItem]) -> d
 
     knapsack_item_dominance_matrix: dict[int, set[int]] = {}
 
-    if not (isinstance(knapsack_items, list) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)):
+    if not (isinstance(knapsack_items, list | tuple) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)):
         raise TypeError("knapsack_items must be a list of `KnapsackItem`")
     
     if len(knapsack_items) != len(set([hash(knapsack_item) for knapsack_item in knapsack_items])):
