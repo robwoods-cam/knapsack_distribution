@@ -115,13 +115,13 @@ class KnapsackInstance:
         if not (isinstance(knapsack_items, list) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)):
             raise TypeError("`knapsack_items` must be a `list` of `KnapsackItem`s.")
         
-        if not isinstance(knapsack_capacity, int):
+        if not isinstance(knapsack_capacity, int) or isinstance(knapsack_capacity, bool):
             raise TypeError(f"`knapsack_capacity` must be int, is {type(knapsack_capacity)}")
         
         if knapsack_capacity < 0:
             raise ValueError(f"`knapsack_capacity` must be positive, is {knapsack_capacity}.")
         
-        if not isinstance(standing_value, int):
+        if not isinstance(standing_value, int) or isinstance(standing_value, bool):
             raise TypeError(f"`standing_value` must be int, is {type(standing_value)}")
         
         if standing_value < 0:

@@ -89,9 +89,9 @@ class KnapsackItem:
                 the newly created `KnapsackItem`s
 
         """
-        if not (isinstance(values, list) and all(isinstance(value, int) for value in values)):
+        if not (isinstance(values, list) and all((isinstance(value, int) and not isinstance(value, bool)) for value in values)):
             raise TypeError("values must be a list of ints.")
-        if not (isinstance(weights, list) and all(isinstance(weight, int) for weight in weights)):
+        if not (isinstance(weights, list) and all((isinstance(weight, int) and not isinstance(weight, bool)) for weight in weights)):
             raise TypeError("weights must be a list of ints.")
         if len(values) != len(weights):
             raise ValueError(f"Length of values and weights must be equal, got {len(values)} (values) and {len(weights)} (weights).")
@@ -113,13 +113,13 @@ class KnapsackItem:
             if `value` is negative or `weight` is not positive 
         """
 
-        if not isinstance(self.value, int):
+        if not (isinstance(self.value, int) and not isinstance(self.value, bool)):
             raise TypeError(f"value must be of type int, is {type(self.value)}.")
         
         if self.value < 0:
             raise ValueError(f"value must be non-negative, is {self.value}.")        
         
-        if not isinstance(self.weight, int):
+        if not (isinstance(self.weight, int) and not isinstance(self.weight, bool)):
             raise TypeError(f"weight must be of type int, is {type(self.weight)}.")
         
         if self.weight <= 0:

@@ -135,7 +135,7 @@ def _validate_parameters_and_value_threshold(param_alpha: float, param_beta: flo
         if not 0.0 <= param_alpha <= 1.0:
             raise ValueError(f"`param_alpha` be greater than or equal to 0.0 and less than or equal to 1.0 for the decision problem, but is {param_alpha}.")
     
-        if not isinstance(value_threshold, int):
+        if not isinstance(value_threshold, int) or isinstance(value_threshold, bool):
             raise TypeError(f"`value_threshold` must be int for decision problem, is {type(value_threshold)}.")
         if value_threshold < 0:
             raise ValueError(f"`value_threshold` must be positive for decision problem, is {value_threshold}.")
@@ -401,7 +401,7 @@ def print_node_distribution(knapsack_instance_x: KnapsackInstance, distribution:
             if not isinstance(distribution, dict):
                 raise TypeError
             
-            if not all(isinstance(key, int) for key in distribution.keys()):
+            if not all((isinstance(key, int) and not isinstance(key, bool)) for key in distribution.keys()):
                 raise TypeError
             
             if not all(isinstance(value, float) for value in distribution.values()):
