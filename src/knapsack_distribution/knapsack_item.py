@@ -1,7 +1,7 @@
 """
 Tools for calculating probabilistic choice distributions in knapsack problem instances.
 
-This module provides the `KnapsackItem` dataclass and supporting functionality.  
+This module provides the `KnapsackItem` dataclass and supporting functionality.
 See README.md for full documentation and examples.
 
 
@@ -13,9 +13,10 @@ Copyright
 
 License
 -------
-This program is free software under the GNU Affero General Public License v3.  
+This program is free software under the GNU Affero General Public License v3.
 See the LICENSE file for full terms.
 """
+
 
 from __future__ import annotations
 from dataclasses import dataclass, field
@@ -37,22 +38,26 @@ class KnapsackItem:
     density : float
         the density (`value` / `weight`) of the knapsack item
     knapsack_item_id:
-        an id for the knapsack item unique to the knapsack problem instance (not to the value and weight of the knapsack item)
+        an id for the knapsack item unique to the knapsack item instance (not to the value and weight of the knapsack
+        item)
     __hash__ : int
-        unique hash for the knapsack item (repeated items have a unique hash based on their `knapsack_item_id`)
+        unique hash for the knapsack item (repeated items by value and weight have a unique hash based on their
+        `knapsack_item_id`)
+
 
     Class Attributes
     ----------------
     _knapsack_items_count : int
         the number of knapsack items created, used for internal ids and hashes
 
+
     Notes
     -----
-    * `__eq__` and `__gt__` are overridden to allow sorting of `KnapsackItem`s so `KnapsackInstance` can create
-    a unique hash based on the items available to allow for nodes to merge and save computational resources.
-    * self == other and hash(self) == hash(other) may give different results. __eq__ only compares the value and 
-    weight of the item, allowing for sorting. However, the hash looks for unique items for branching.
-    This means that `KnapsackItem`s should not be used as keys or in sets.
+    * `__eq__` and `__gt__` are overridden to allow sorting of `KnapsackItem`s so `KnapsackInstance` can create a unique
+        hash based on the items available to allow for nodes to merge and save computational resources.
+    * self == other and hash(self) == hash(other) may give different results. __eq__ only compares the value and weight
+        of the item, allowing for sorting. However, the hash looks for unique items for branching. This means that
+        `KnapsackItem`s should **not** be used as keys or in sets, but their hash instead.
     """
 
     value: int
@@ -66,7 +71,8 @@ class KnapsackItem:
 
     @classmethod
     def create_from_list(cls, values: list[int], weights: list[int]) -> list[KnapsackItem]:
-        """ creates and returns a `list` of `KnapsackItem`s from an equal list of `values` and `weights`
+        """ creates and returns a `list` of `KnapsackItem`s from an equal length list of `values` and `weights`
+
 
         Parameters
         ----------
@@ -74,6 +80,7 @@ class KnapsackItem:
             The values of the `KnapsackItem`s to be created in order
         weights : list[int]
             The weights of the `KnapsackItem`s to be created in order
+
 
         Raises
         ------
@@ -83,18 +90,21 @@ class KnapsackItem:
         ValueError
             if the length of `values` and `weights` are not both equal
 
+
         Returns
         -------
             knapsack_items : list[KnapsackItem]
                 the newly created `KnapsackItem`s
-
         """
-        if not (isinstance(values, list) and all((isinstance(value, int) and not isinstance(value, bool)) for value in values)):
+        if not (isinstance(values, list) and all((isinstance(value, int)
+            and not isinstance(value, bool)) for value in values)):
             raise TypeError("values must be a list of ints.")
-        if not (isinstance(weights, list) and all((isinstance(weight, int) and not isinstance(weight, bool)) for weight in weights)):
+        if not (isinstance(weights, list) and all((isinstance(weight, int)
+            and not isinstance(weight, bool)) for weight in weights)):
             raise TypeError("weights must be a list of ints.")
         if len(values) != len(weights):
-            raise ValueError(f"Length of values and weights must be equal, got {len(values)} (values) and {len(weights)} (weights).")
+            raise ValueError(f"Length of values and weights must be equal, got {len(values)} (values) and"
+                f" {len(weights)} (weights).")
 
         knapsack_items: list[KnapsackItem] = []
         for value, weight in zip(values, weights):
@@ -103,35 +113,35 @@ class KnapsackItem:
         return knapsack_items
 
     def __post_init__(self) -> None:
-        """ creates (post) a `KnapsackItem`
+        """ creates (post_init) a `KnapsackItem`
+
 
         Raises
         ------
         TypeError
             if `value` and `weight` are not both `int`s
         ValueError
-            if `value` is negative or `weight` is not positive 
+            if `value` is negative or `weight` is not positive
         """
-
         if not (isinstance(self.value, int) and not isinstance(self.value, bool)):
             raise TypeError(f"value must be of type int, is {type(self.value)}.")
-        
+
         if self.value < 0:
-            raise ValueError(f"value must be non-negative, is {self.value}.")        
-        
+            raise ValueError(f"value must be non-negative, is {self.value}.")
+
         if not (isinstance(self.weight, int) and not isinstance(self.weight, bool)):
             raise TypeError(f"weight must be of type int, is {type(self.weight)}.")
-        
+
         if self.weight <= 0:
             raise ValueError(f"weight must be positive, is {self.weight}.")
-        
+
         object.__setattr__(self, "density", self.value / self.weight)
         object.__setattr__(self, "knapsack_item_id", self.__class__._knapsack_items_count)
 
-        h = hashlib.sha256(
+        full_hash = hashlib.sha256(
             f"{self.value},{self.weight},{self.knapsack_item_id}".encode()
         ).digest()
-        object.__setattr__(self, "_full_hash", h)
+        object.__setattr__(self, "_full_hash", full_hash)
 
         KnapsackItem._knapsack_items_count += 1
 
@@ -144,16 +154,20 @@ class KnapsackItem:
     def __gt__(self, other: object) -> bool:
         if not isinstance(other, KnapsackItem):
             return NotImplemented
-        return self != other and (self.density > other.density or (self.density == other.density and self.value > other.value))
-    
+        # self.value * other.weight is used as a proxy for density to avoid float comparisons
+        return self != other and (self.value * other.weight > other.value * self.weight or
+            (self.value * other.weight == other.value * self.weight and self.value > other.value))
+
     def __lt__(self, other: object) -> bool:
         if not isinstance(other, KnapsackItem):
             return NotImplemented
-        return self != other and (self.density < other.density or (self.density == other.density and self.value < other.value))
+        # self.value * other.weight is used as a proxy for density to avoid float comparisons
+        return self != other and (self.value * other.weight < other.value * self.weight or
+            (self.value * other.weight == other.value * self.weight and self.value < other.value))
 
     def __hash__(self) -> int:
-        """ Python uses 61 bit hashes (on 64-bit implementations), so we use the first 7 bytes of the SHA-256 as the hash. 
-        
+        """ Python uses 61 bit hashes (64-bit implementations), so we use the first 7 bytes of the SHA-256 as the hash.
+
         This only works on 64-bit implementations of Python.
         Note that self == other and hash(self) == hash(other) do not return the same result.
         """

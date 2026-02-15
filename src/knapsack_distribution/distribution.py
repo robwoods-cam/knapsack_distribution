@@ -2,7 +2,7 @@
 Tools for calculating probabilistic choice distributions in knapsack problem instances.
 
 This module provides the the key functions `get_node_distribution`, `print_node_distribution`,
-`solve_decision_variant`, and supporting functionality.  
+`solve_decision_variant`, and supporting functionality.
 See README.md for full documentation and examples.
 
 
@@ -14,7 +14,7 @@ Copyright
 
 License
 -------
-This program is free software under the GNU Affero General Public License v3.  
+This program is free software under the GNU Affero General Public License v3.
 See the LICENSE file for full terms.
 """
 
@@ -28,13 +28,13 @@ from .problem_type import ProblemType
 
 
 def _get_knapsack_item_dominance_matrix(knapsack_items: list[KnapsackItem] | tuple[KnapsackItem, ...]) -> dict[int, set[int]]:
-    """ Sets the `KnapsackItem`s that dominate this `KnapsackItem`. TODO 
-    
+    """ Sets the `KnapsackItem`s that dominate this `KnapsackItem`. TODO
+
     #     Sets `_dominating_knapsack_item_hashes` to a `set` of `hash`es for all `knapsack_item`s in `knapsack_items` that dominate it.
     #     A knapsack item dominates another if both the value is greater than the other value and the weight is less than the other weight and at least one is strictly.
 
     Checks to see if any `KnapsackItem` in `knapsack_items` dominates this `KnapsackItem`.
-        
+
     #     A knapsack item dominates another if both the value is greater than the other value and the weight is less than the other weight and at least one is strictly.
 
     #     Parameters
@@ -53,17 +53,17 @@ def _get_knapsack_item_dominance_matrix(knapsack_items: list[KnapsackItem] | tup
     #     -------
 #         knapsack_item_dominance_matrix : dict[int, set[int]]
             TODO
-    
+
     """
 
     knapsack_item_dominance_matrix: dict[int, set[int]] = {}
 
     if not (isinstance(knapsack_items, list | tuple) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)):
         raise TypeError("knapsack_items must be a list of `KnapsackItem`")
-    
+
     if len(knapsack_items) != len(set([hash(knapsack_item) for knapsack_item in knapsack_items])):
         raise ValueError("Repeated `KnapsackItem` cannot be set in dominance matrix.")
-    
+
     for knapsack_item_1 in knapsack_items:
         knapsack_item_dominance_matrix[hash(knapsack_item_1)] = set()
 

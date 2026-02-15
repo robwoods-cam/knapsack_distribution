@@ -42,7 +42,7 @@ The module primarily consists of two classes:
           * Child nodes representing feasible subproblems.
           * Terminal nodes and optimal solutions.
       * Computes probabilistic distributions of reaching each terminal node.
- 
+
 Note: `KnapsackItem` and `KnapsackInstance` both use custom hashing functions. It may be the case that `self == other` and `hash(self) == hash(other)` give different results. As such, both `KnapsackItem` and `KnapsackInstance` should not be used directly as an element in a set or as a key in a dict. The hash should manually be used instead.
 
 -----
@@ -87,7 +87,7 @@ Note: `KnapsackItem` and `KnapsackInstance` both use custom hashing functions. I
 ## 🛠 Requirements
 
   - Python **3.14+** (due to modern type hints)
-  - Python **64-bit** for int64 hashing 
+  - Python **64-bit** for int64 hashing
   - Standard library only
 
 -----
