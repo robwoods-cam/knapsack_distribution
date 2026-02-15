@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "knapsack_distribution"
-version = "2.0.1-alpha-2"
+version = "2.0.2-alpha-1"
 description = "A tool for calculating the expected distribution of solutions for any specified instance of the Knapsack Problem, as reached by a single decision-maker or an entire population."
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 license = "AGPL-3.0-only"
 license-files = ["LICENSE"]
 
@@ -36,6 +36,8 @@ keywords = [
 classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Programming Language :: Python :: 3.14",
   "Operating System :: OS Independent",
   "Development Status :: 3 - Alpha",
@@ -47,17 +49,17 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/yourname/knapsack-distribution"
-Repository = "https://github.com/yourname/knapsack-distribution"
-Issues = "https://github.com/yourname/knapsack-distribution/issues"
-Documentation = "https://github.com/yourname/knapsack-distribution#readme"
+Homepage = "https://github.com//robwoods-cam/knapsack-distribution"
+Repository = "https://github.com//robwoods-cam/knapsack-distribution"
+Issues = "https://github.com//robwoods-cam/knapsack-distribution/issues"
+Documentation = "https://github.com//robwoods-cam/knapsack-distribution#readme"
 
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-"knapsack_distribution" = ["py.typed"] 
+"knapsack_distribution" = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
