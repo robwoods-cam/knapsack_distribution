@@ -25,7 +25,7 @@ For full details of the model, including explanation and examples of the individ
 
 ## 🏗 Classes
 
-The module primarily consists of two classes:
+The module primarily consists of two immutable dataclasses:
 
 1.  **`KnapsackItem`**
 
@@ -42,6 +42,7 @@ The module primarily consists of two classes:
           * Child nodes representing feasible subproblems.
           * Terminal nodes and optimal solutions.
       * Computes probabilistic distributions of reaching each terminal node.
+      * Must be initiated through `KnapsackInstance.create()`
 
 Note: `KnapsackItem` and `KnapsackInstance` both use custom hashing functions. It may be the case that `self == other` and `hash(self) == hash(other)` give different results. As such, both `KnapsackItem` and `KnapsackInstance` should not be used directly as an element in a set or as a key in a dict. The hash should manually be used instead.
 
@@ -66,8 +67,8 @@ Note: `KnapsackItem` and `KnapsackInstance` both use custom hashing functions. I
 
   - **Caching**
 
-      * Uses hash-based caching (`problem_by_hash`, `distribution_by_hash`) to avoid redundant computations.
-      * Hashes use the last 7-bytes of a SHA256 hash, so they are stable across Python runs. Data can be saved and compared.
+      * Uses hash-based caching (`KnapsackInstance.instance_by_hash`, `distribution_by_hash`) to avoid redundant computations.
+      * Hashes use the first 7-bytes of a SHA256 hash, so they are stable across Python runs. Data can be saved and compared.
 
 -----
 
@@ -75,7 +76,7 @@ Note: `KnapsackItem` and `KnapsackInstance` both use custom hashing functions. I
 
   - **Node**: A knapsack state with a set of remaining items and capacity.
   - **Child Node**: A new node created by adding one item to the current knapsack.
-  - **Master Node**: The founding node which created this knapsack problem.
+  - **Master Node / Master Knapsack**: The founding node which created this knapsack problem.
   - **Terminal Node**: A node with no feasible child nodes (capacity exhausted or no items left).
   - **Dominated Item**: An item that is strictly worse than another (higher weight and lower or equal value).
   - **Non-Dominated Item**: An item that is not dominated by any other in the current set.
@@ -86,7 +87,7 @@ Note: `KnapsackItem` and `KnapsackInstance` both use custom hashing functions. I
 
 ## 🛠 Requirements
 
-  - Python **3.14+** (due to modern type hints)
+  - Python **3.12+**
   - Python **64-bit** for int64 hashing
   - Standard library only
 
@@ -117,12 +118,14 @@ knapsack_instance = KnapsackInstance.create(knapsack_items, knapsack_capacity)
 parameters = param_alpha, param_beta, param_gamma, param_delta = 0.7, 0.6, 0.4, 0.6
 
 # Compute distribution
-knapsack_distribution = knapsack_instance.get_node_distribution(
-    param_alpha, param_beta, param_gamma, param_delta
+knapsack_distribution = get_node_distribution(knapsack_instance,
+    param_alpha, param_beta, param_gamma, param_delta,
+    problem_type=ProblemType.OPTIMISATION
 )
 
 # Print distribution
-knapsack_instance.print_node_distribution(knapsack_distribution, parameters, print_threshold=0.01)
+print_node_distribution(knapsack_instance, knapsack_distribution, parameters, print_threshold=0.01)
+
 ```
 
 Output:
@@ -166,6 +169,8 @@ Total Distribution: 1.0
 
 Number of Terminal Nodes: 338
 ```
+
+More examples can be found in the examples folder.
 
 -----
 
