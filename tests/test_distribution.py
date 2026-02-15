@@ -29,10 +29,10 @@ class TestModelVersion(unittest.TestCase):
 
     def test_version(self):
         """ Check that the version of `knapsack_cls` matches the model used to calculate these tests.
-        
+
         Some of these tests use a manually calculated knapsack instance for comparison to the output
         of the package. They rely on a specific knapsack instance, specific parameters, and a specific
-        version of the distribution model. Changing any of these may change the results, and these 
+        version of the distribution model. Changing any of these may change the results, and these
         tests will no longer work.
         """
         self.assertEqual(__version__.split(".")[0], "2")
@@ -45,10 +45,10 @@ class TestDominanceMatrix(unittest.TestCase):
 
         Items with higher value for the same (or less) weight dominate.
         Items with lower weight for the same (or less) value dominate.
-        
+
         A dominates B dominates C.
         D is not dominated, nor dominates any item."""
-    
+
         knapsack_item_A = KnapsackItem(30, 10)
         knapsack_item_B = KnapsackItem(20, 20)
         knapsack_item_C = KnapsackItem(10, 20)
@@ -70,7 +70,7 @@ class TestDominanceMatrix(unittest.TestCase):
 
     def test_repeated_item_dominance(self):
         """ Test dominance of repeated `KnapsackItem`s.
-        
+
         To allow for simplification of knapsack instances with repeated identical items (same value and weight),
         an arbitrary dominance between repeated items is applied which is that early items dominate later items.
         """
@@ -78,7 +78,7 @@ class TestDominanceMatrix(unittest.TestCase):
         knapsack_item_A = KnapsackItem(30, 10)
         knapsack_item_B = KnapsackItem(30, 10)
         knapsack_item_C = KnapsackItem(30, 10)
-        
+
         knapsack_items = [knapsack_item_A, knapsack_item_B, knapsack_item_C]
 
         knapsack_item_dominance_matrix = _get_knapsack_item_dominance_matrix(knapsack_items)
@@ -107,15 +107,15 @@ class TestDominanceMatrix(unittest.TestCase):
 
 class TestValidation(unittest.TestCase):
     def test_validate_parameters_and_value_threshold(self):
-        """ Test `_validate_parameters_and_value_threshold` 
-        
+        """ Test `_validate_parameters_and_value_threshold`
+
         Does not cover all possibilities, but many."""
         safe_alpha = safe_beta = safe_gamma = safe_delta = 0.5
         _validate_parameters_and_value_threshold(safe_alpha, safe_beta, safe_gamma, safe_delta, ProblemType.OPTIMISATION, None)
 
         with self.assertRaises(ValueError):
             _validate_parameters_and_value_threshold(-0.5, safe_beta, safe_gamma, safe_delta, ProblemType.OPTIMISATION, None)
-        
+
         with self.assertRaises(ValueError):
             _validate_parameters_and_value_threshold(safe_alpha, -0.5, safe_gamma, safe_delta, ProblemType.OPTIMISATION, None)
 
@@ -129,7 +129,7 @@ class TestValidation(unittest.TestCase):
 class TestDistribution(unittest.TestCase):
     def test_get_node_distribution(self):
         """ Test the node distribution calculation.
-        
+
         This test is based on model 2.0 and for a given knapsack that was manually calculated.
         """
 
@@ -149,13 +149,13 @@ class TestDistribution(unittest.TestCase):
         self.assertAlmostEqual(sum(node_distribution.values()), 1.0)
 
         sorted_node_distribution = {key: value for key, value in sorted(node_distribution.items(), key=lambda item: item[1], reverse=True)}
-        
+
         self.assertEqual(list(sorted_node_distribution.keys())[0], 25120288178553251)
         self.assertEqual(list(sorted_node_distribution.keys())[1], 6357217347003608)
         self.assertEqual(list(sorted_node_distribution.keys())[2], 7741808502296642)
         self.assertEqual(list(sorted_node_distribution.keys())[3], 3854787489353282)
         self.assertEqual(list(sorted_node_distribution.keys())[4], 19588103317795958)
-        
+
         self.assertAlmostEqual(node_distribution[25120288178553251], 0.776998932560427)
         self.assertAlmostEqual(node_distribution[6357217347003608], 0.162691836871925)
         self.assertAlmostEqual(node_distribution[7741808502296642], 0.0440568067760513)
@@ -170,7 +170,7 @@ class TestDistribution(unittest.TestCase):
 
     def test_get_node_distribution_paper_appendix_1_optimisation(self):
         """ Test the node distribution calculation.
-        
+
         This test is based on model 2.0 and uses the knapsack example in Chapter 1 Appendix 1 (8.1) for the optimisation instance that was manually calculated.
         """
 
@@ -195,7 +195,7 @@ class TestDistribution(unittest.TestCase):
         self.assertEqual(list(sorted_node_distribution.keys())[1], 27586698572505746)
         self.assertEqual(list(sorted_node_distribution.keys())[2], 67530635375991832)
         self.assertEqual(list(sorted_node_distribution.keys())[3], 11599976948146986)
-        
+
         self.assertAlmostEqual(node_distribution[19607764745246483], 0.7487276377548032)
         self.assertAlmostEqual(node_distribution[27586698572505746], 0.1534085161146231)
         self.assertAlmostEqual(node_distribution[67530635375991832], 0.08380264655104011)
@@ -209,7 +209,7 @@ class TestDistribution(unittest.TestCase):
     def test_print_node_distribution(self):
         """ Test the printed message from print_node_distribution.
 
-        This test is based on model 2.0 and uses the knapsack example in Chapter 1 Appendix 1 (8.1) for the optimisation instance.        
+        This test is based on model 2.0 and uses the knapsack example in Chapter 1 Appendix 1 (8.1) for the optimisation instance.
         """
 
         knapsack_items = [KnapsackItem(12, 7), KnapsackItem(8, 5), KnapsackItem(14, 8), KnapsackItem(9, 4)]
@@ -222,27 +222,27 @@ class TestDistribution(unittest.TestCase):
         param_delta = 0.5
 
         node_distribution = get_node_distribution(knapsack_instance, param_alpha, param_beta, param_gamma, param_delta)
-        
+
         original = sys.stdout
         try:
             buf = io.StringIO()
             sys.stdout = buf
             print_node_distribution(knapsack_instance, node_distribution, (param_alpha, param_beta, param_gamma, param_delta), 0.01)
             expected_print = "Inputs\n\nParameters: α = 0.7, β = 0.75, γ = 0.4, δ = 0.5\n\nKnapsack Problem Variant: Optimisation\n\nItems: (v: 12, w: 7), (v: 8, w: 5), (v: 14, w: 8), (v: 9, w: 4)\n\nBudget: 16\n\n-------------------------------------\n\nOutput\n\nTerminal Nodes (*** for optimal):\n[1, 1, 0, 1] - Σv: 29, Σw: 16 / 16 - 74.873% ***\n[1, 0, 1, 0] - Σv: 26, Σw: 15 / 16 - 15.341%\n[0, 0, 1, 1] - Σv: 23, Σw: 12 / 16 - 8.380%\n[0, 1, 1, 0] - Σv: 22, Σw: 13 / 16 - 1.406%\n\nTotal Distribution: 1.0\n\nNumber of Terminal Nodes: 4\n\n"
-            
+
             self.assertEqual(buf.getvalue(), expected_print)
         finally:
             sys.stdout = original
 
     def test_get_node_distribution_paper_appendix_1_decision(self):
         """ Test the decision witness finding calculation.
-        
+
         This test is based on model 2.0 and uses the knapsack example in Chapter 1 Appendix 1 (8.1) for the decision instance that was manually calculated."""
 
         knapsack_items = [KnapsackItem(12, 7), KnapsackItem(8, 5), KnapsackItem(14, 8), KnapsackItem(9, 4)]
         knapsack_capacity = 16
         knapsack_instance = KnapsackInstance.create(knapsack_items, knapsack_capacity)
-        
+
         param_alpha = 0.70
         param_beta = 0.75
         param_gamma = 0.4
@@ -250,5 +250,5 @@ class TestDistribution(unittest.TestCase):
         value_threshold = 27
 
         satisfiable_percent = solve_decision_variant(knapsack_instance, param_alpha, param_beta, param_gamma, param_delta, value_threshold)
-        
+
         self.assertAlmostEqual(satisfiable_percent, 0.9001191238392088)
