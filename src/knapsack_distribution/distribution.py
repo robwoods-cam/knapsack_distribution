@@ -99,51 +99,51 @@ def _validate_parameters_and_value_threshold(param_alpha: float, param_beta: flo
     TypeError
         `problem_type` is not `ProblemType`
         `param_alpha`, `param_beta`, `param_gamma`, or `param_delta` are not float
-        `value_threshold` is not int for decision task and None for optimisation task 
+        `value_threshold` is not int for decision task and None for optimisation task
     ValueError
         `problem_type` is not recognised
         `param_alpha`, `param_beta`, `param_gamma`, or `param_delta` are not in valid range
         `value_threshold` is negative for decision task
-    
+
     Returns
     -------
     None
-    """       
-    
+    """
+
     if not isinstance(param_beta, float):
         raise TypeError(f"`param_beta` must be of type float, but is {type(param_beta)}.")
     if not 0.0 <= param_beta < 1.0:
         raise ValueError(f"`param_beta` be greater than or equal to 0.0 and less than 1.0, but is {param_beta}.")
-    
+
     if not isinstance(param_gamma, float):
         raise TypeError(f"`param_gamma` must be of type float, but is {type(param_gamma)}.")
     if not 0.0 <= param_gamma < 1.0:
         raise ValueError(f"`param_gamma` be greater than or equal to 0.0 and less than 1.0, but is {param_gamma}.")
-    
+
     if not isinstance(param_delta, float):
         raise TypeError(f"`param_delta` must be of type float, but is {type(param_delta)}.")
-    if not 0.0 <= param_delta <= 1.0:            
+    if not 0.0 <= param_delta <= 1.0:
         raise ValueError(f"`param_delta` be greater than or equal to 0.0 and less than or equal to 1.0, but is {param_delta}.")
 
     if not isinstance(param_alpha, float):
         raise TypeError(f"`param_alpha` must be of type float, but is {type(param_alpha)}.")
-    
+
     if not isinstance(problem_type, ProblemType):
         raise TypeError(f"`problem_type` must be of type `ProblemType`, but is {type(problem_type)}.")
-    
+
     if problem_type is ProblemType.DECISION:
         if not 0.0 <= param_alpha <= 1.0:
             raise ValueError(f"`param_alpha` be greater than or equal to 0.0 and less than or equal to 1.0 for the decision problem, but is {param_alpha}.")
-    
+
         if not isinstance(value_threshold, int) or isinstance(value_threshold, bool):
             raise TypeError(f"`value_threshold` must be int for decision problem, is {type(value_threshold)}.")
         if value_threshold < 0:
             raise ValueError(f"`value_threshold` must be positive for decision problem, is {value_threshold}.")
-    
+
     elif problem_type is ProblemType.OPTIMISATION:
         if not 0.0 < param_alpha <= 1.0:
             raise ValueError(f"`param_alpha` be greater than 0.0 and less than or equal to 1.0 for the optimisation problem, but is {param_alpha}.")
-        
+
         if value_threshold is not None:
             raise TypeError(f"`value_threshold` must be None for optimisation problem, is {type(value_threshold)}.")
 
@@ -157,11 +157,11 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
     This is based on the supplied alpha, beta, gamma, and delta parameters.
     Node distribution only considers feasible (at or under capacity) terminal (no more items will fit in the knapsack) nodes.
 
-    
+
     #     Non-dominated terminal nodes is from the perspective that no items are added from this node onwards which are dominated.
     #     Dominated items may already have been added, as long as no further items are added.
     #     Mathematically, in these nodes, there are no-dominated items included unless the item was already included at this node.
-    
+
     Parameters
     ----------
     param_alpha : float
@@ -185,12 +185,12 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
     TypeError
         `param_alpha`, `param_beta`, `param_gamma`, or `param_delta` are not float
         `problem_type` is not `ProblemType`
-        `value_threshold` is not int for decision task and None for optimisation task 
+        `value_threshold` is not int for decision task and None for optimisation task
     ValueError
         `problem_type` is not recognised
         `param_alpha`, `param_beta`, `param_gamma`, or `param_delta` are not in valid range
         `value_threshold` is negative for decision task
-    
+
     Returns
     -------
     node_distribution : dict[int, float]
@@ -198,7 +198,7 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
     """
 
     distribution_by_hash: dict[int, dict[int, float]] = {}
-    included_dominated_items_by_hash: dict[int, list[KnapsackItem]] = {} 
+    included_dominated_items_by_hash: dict[int, list[KnapsackItem]] = {}
     knapsack_item_dominance_matrix: dict[int, set[int]] = _get_knapsack_item_dominance_matrix(knapsack_instance.knapsack_items)
 
     for terminal_node in knapsack_instance.terminal_nodes:
@@ -248,7 +248,7 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
             # percent_witness_found_delta_1 = percent_witness_found
 
             percent_find_optimal_full_set = ((1 - param_delta) * (percent_witness_found_delta_0 ** ((1 - param_alpha) / param_alpha)))
-            percent_find_optimal_non_dominated = (param_delta * (percent_witness_found_delta_1 ** ((1 - param_alpha) / param_alpha)))            
+            percent_find_optimal_non_dominated = (param_delta * (percent_witness_found_delta_1 ** ((1 - param_alpha) / param_alpha)))
 
             for knapsack_instance_hash, distribution_percentage in distribution_search_delta_0.items():
                 if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value >= value_threshold:
@@ -291,10 +291,10 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
         hash_string = str(param_beta)  + "," + str(param_alpha) + "," + str(param_gamma) + "," + str(param_delta) + "," + str(problem_type) + "," + str(hash(knapsack_instance))
         full_hash = hashlib.sha256(hash_string.encode("utf-8")).digest()
         node_distribution_hash = int.from_bytes(full_hash[:7], 'big')
-        
+
         if node_distribution_hash in distribution_by_hash:
             return distribution_by_hash[node_distribution_hash]
-        
+
         # Otherwise, validate the parameters and calculate the node distribution
         _validate_parameters_and_value_threshold(param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
         node_distribution: dict[int, float] = {}
@@ -306,20 +306,20 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
 
         # _non_dominated_items
         non_dominated_items: set[int] = set()
-        for i, knapsack_item in enumerate(knapsack_instance.knapsack_items):        
+        for i, knapsack_item in enumerate(knapsack_instance.knapsack_items):
             if not any(hash(knapsack_item_x) in knapsack_item_dominance_matrix[hash(knapsack_item)] for knapsack_item_x in knapsack_instance.knapsack_items[:i] + knapsack_instance.knapsack_items[i + 1:]):
                 non_dominated_items.add(hash(knapsack_item))
-        
-        # TODO fix (if can) issue is this need to be done 
+
+        # TODO fix (if can) issue is this need to be done
         # TODO this probably doesnt need to be redone
         included_dominated_items: list[KnapsackItem] = [standing_knapsack_item for standing_knapsack_item in knapsack_instance.standing_knapsack_items if any(hash(knapsack_item_x) in knapsack_item_dominance_matrix[hash(standing_knapsack_item)] for knapsack_item_x in knapsack_instance.knapsack_items)]
         included_dominated_items_by_hash[hash(knapsack_instance)] = included_dominated_items
-        
+
         # _non_dominated_terminal_nodes
         #     return [terminal_node for terminal_node in self._terminal_nodes if not KnapsackInstance.instance_by_hash[terminal_node]._is_dominated or all(terminal_included_dominated_item in self._included_dominated_items for terminal_included_dominated_item in KnapsackInstance.instance_by_hash[terminal_node]._included_dominated_items)] 
-        
+
         non_dominated_terminal_nodes = [terminal_node for terminal_node in knapsack_instance.terminal_nodes if not len(included_dominated_items_by_hash[terminal_node]) >= 1 or all(terminal_included_dominated_item in included_dominated_items for terminal_included_dominated_item in included_dominated_items_by_hash[terminal_node])] 
-        
+
         # _non_dominated_optimal_terminal_nodes
         #   return [terminal_node for terminal_node in self._optimal_terminal_nodes if not KnapsackInstance.instance_by_hash[terminal_node]._is_dominated or all(terminal_included_dominated_item in self._included_dominated_items for terminal_included_dominated_item in KnapsackInstance.instance_by_hash[terminal_node]._included_dominated_items)]
 
@@ -397,22 +397,22 @@ def print_node_distribution(knapsack_instance_x: KnapsackInstance, distribution:
 
         def validate_distribution(distribution: dict[int, float]) -> None:
             """ Validate the supplied distribution. """
-            
+
             if not isinstance(distribution, dict):
                 raise TypeError
-            
+
             if not all((isinstance(key, int) and not isinstance(key, bool)) for key in distribution.keys()):
                 raise TypeError
-            
+
             if not all(isinstance(value, float) for value in distribution.values()):
                 raise TypeError
-            
+
             if not math.isclose(sum(distribution.values()), 1.0):
                 raise ValueError
 
         def validate_print_parameters(parameters: tuple[float, float, float, float] | None, print_threshold: float ) -> None:
             """ Validate the supplied print parameters. """
-            
+
             if parameters is not None:
                 if not isinstance(parameters, tuple):
                     raise TypeError
@@ -432,10 +432,10 @@ def print_node_distribution(knapsack_instance_x: KnapsackInstance, distribution:
             if not 0.0 < print_threshold <= 1.0:
                 raise ValueError
 
-        
+
         def get_item_inclusion_string(terminal_node_knapsack_items_repr_hash: list[int], master_knapsack_items_repr_hashes: list[int]) -> str:
             """ Return a string of the items included (1s and 0s) base on the order they are specified in `master_knapsack_items_repr_hashes`. 
-            
+
             This more involved method is required due to repeated items. This gives strict priority to earlier instances of the repeated identical item.
             This means that two terminal nodes featuring a repeated item will give the same terminal distribution, regardless of which of the items was
             included. The reason for this is to a human, the two knapsacks are identical, hence, should not be considered split.
@@ -456,10 +456,10 @@ def print_node_distribution(knapsack_instance_x: KnapsackInstance, distribution:
             item_inclusion_string = str([1 if item_included else 0 for item_included in item_inclusions])
 
             return item_inclusion_string
-        
+
         validate_distribution(distribution)
         validate_print_parameters(parameters, print_threshold)
-        
+
         distribution = dict(sorted(distribution.items(), key=lambda x: x[1], reverse=True))
 
         print("Inputs\n")
@@ -477,12 +477,12 @@ def print_node_distribution(knapsack_instance_x: KnapsackInstance, distribution:
             if distribution_percentage > print_threshold:
                 knapsack_instance_x_2 = KnapsackInstance.instance_by_hash[knapsack_instance_hash]
                 item_inclusion_string = get_item_inclusion_string(knapsack_instance_x_2.knapsack_items_repr_hashes, knapsack_instance_x.knapsack_items_repr_hashes)
-                
+
                 if knapsack_instance_x_2.master_knapsack is None:  # This is mainly for type hint errors
                     raise RuntimeError("Cannot print for knapsack without master knapsack.")  # Note: This will crash if master knapsack has no items which will fit.
-                
+
                 print(f"{item_inclusion_string} - Σv: {knapsack_instance_x_2.standing_value}, Σw: {knapsack_instance_x_2.master_knapsack.knapsack_capacity - knapsack_instance_x_2.knapsack_capacity} / {knapsack_instance_x_2.master_knapsack.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{" ***" if hash(knapsack_instance_x_2) in knapsack_instance_x_2.master_knapsack.optimal_terminal_nodes else ""}")
-    
+
         print(f"\nTotal Distribution: {sum(distribution.values())}\n")
         print(f"Number of Terminal Nodes: {len(distribution)}\n")
 
@@ -490,7 +490,7 @@ def print_node_distribution(knapsack_instance_x: KnapsackInstance, distribution:
 def solve_decision_variant(knapsack_instance_x: KnapsackInstance, param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, value_threshold: int) -> float:
         """
         Return the expectation (as a percent) of the the time a witness will be found in the knapsack decision problem instance for the given parameters and value threshold (target).
-        
+
         Parameters
         ----------
         param_alpha : float
@@ -515,7 +515,7 @@ def solve_decision_variant(knapsack_instance_x: KnapsackInstance, param_alpha: f
         ValueError
             `param_alpha`, `param_beta`, `param_gamma`, or `param_delta` are not in valid range
             `value_threshold` is negative
-        
+
         Returns
         -------
         percent_witness_found : float
@@ -523,8 +523,8 @@ def solve_decision_variant(knapsack_instance_x: KnapsackInstance, param_alpha: f
         """
 
         _validate_parameters_and_value_threshold(param_alpha, param_beta, param_gamma, param_delta, ProblemType.DECISION, value_threshold)
-    
+
         node_distribution = get_node_distribution(knapsack_instance_x, param_alpha, param_beta, param_gamma, param_delta, ProblemType.DECISION, value_threshold)
         percent_witness_found = sum([distribution_percentage for knapsack_instance_hash, distribution_percentage in node_distribution.items() if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value >= value_threshold])
-        
+
         return percent_witness_found
