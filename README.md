@@ -93,6 +93,19 @@ Note: `KnapsackItem` and `KnapsackInstance` both use custom hashing functions. I
 
 -----
 
+## 📦 Installation
+
+```bash
+
+# From source:
+git clone https://github.com/robwoods-cam/knapsack-distribution.git
+cd knapsack-distribution
+pip install .
+```
+Python 3.12+ is required.
+
+-----
+
 ## 🚀 Usage
 
 ### Example:
