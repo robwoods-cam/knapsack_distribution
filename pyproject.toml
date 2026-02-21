@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "knapsack_distribution"
-version = "2.0.1-alpha-2"
+version = "2.0.1-alpha-3"
 description = "A tool for calculating the expected distribution of solutions for any specified instance of the Knapsack Problem, as reached by a single decision-maker or an entire population."
 readme = "README.md"
 requires-python = ">=3.14"
@@ -47,17 +47,17 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/yourname/knapsack-distribution"
-Repository = "https://github.com/yourname/knapsack-distribution"
-Issues = "https://github.com/yourname/knapsack-distribution/issues"
-Documentation = "https://github.com/yourname/knapsack-distribution#readme"
+Homepage = "https://github.com/robwoods-cam/knapsack-distribution"
+Repository = "https://github.com/robwoods-cam/knapsack-distribution"
+Issues = "https://github.com/robwoods-cam/knapsack-distribution/issues"
+Documentation = "https://github.com/robwoods-cam/knapsack-distribution#readme"
 
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-"knapsack_distribution" = ["py.typed"] 
+"knapsack_distribution" = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

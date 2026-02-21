@@ -6,8 +6,8 @@ See README.md for full documentation and examples.
 
 Copyright
 ---------
-© 2025 Robert Woods - Code and implementation  
-© 2025 Roman Berlanger - Model and concept  
+© 2025 Robert Woods - Code and implementation
+© 2025 Roman Berlanger - Model and concept
 
 License
 -------
