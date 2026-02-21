@@ -365,7 +365,7 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
     return _get_child_node_distribution(knapsack_instance, param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
 
 
-def print_node_distribution(knapsack_instance_x: KnapsackInstance, distribution: dict[int, float], parameters: tuple[float, float, float, float] | None = None, print_threshold: float = 0.0001) -> None:
+def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribution: dict[int, float], parameters: tuple[float, float, float, float] | None = None, print_threshold: float = 0.0001) -> None:
         """ Print the knapsack node distribution with all relevant information.
 
         Prints the distribution (as a percentage of 1) that someone will end in each terminal node from this given Knapsack Instance.
@@ -434,7 +434,7 @@ def print_node_distribution(knapsack_instance_x: KnapsackInstance, distribution:
 
 
         def get_item_inclusion_string(terminal_node_knapsack_items_repr_hash: list[int], master_knapsack_items_repr_hashes: list[int]) -> str:
-            """ Return a string of the items included (1s and 0s) base on the order they are specified in `master_knapsack_items_repr_hashes`. 
+            """ Return a string of the items included (1s and 0s) base on the order they are specified in `master_knapsack_items_repr_hashes`.
 
             This more involved method is required due to repeated items. This gives strict priority to earlier instances of the repeated identical item.
             This means that two terminal nodes featuring a repeated item will give the same terminal distribution, regardless of which of the items was
@@ -465,8 +465,8 @@ def print_node_distribution(knapsack_instance_x: KnapsackInstance, distribution:
         print("Inputs\n")
         if parameters: print(f"Parameters: \u03b1 = {parameters[0]}, \u03B2 = {parameters[1]}, \u03b3 = {parameters[2]}, \u03B4 = {parameters[3]}\n")  # alpha (\u03b1), beta (\u03B2), gamma (\u03b3), delta (\u03B4)
         print("Knapsack Problem Variant: Optimisation\n")
-        print("Items: " + ", ".join([str(knapsack_item) for knapsack_item in knapsack_instance_x.knapsack_items]) + "\n")
-        print(f"Budget: {knapsack_instance_x.knapsack_capacity}\n")
+        print("Items: " + ", ".join([str(knapsack_item) for knapsack_item in master_knapsack_instance.knapsack_items]) + "\n")
+        print(f"Budget: {master_knapsack_instance.knapsack_capacity}\n")
 
         print("-------------------------------------\n")
 
@@ -475,19 +475,19 @@ def print_node_distribution(knapsack_instance_x: KnapsackInstance, distribution:
 
         for knapsack_instance_hash, distribution_percentage in distribution.items():
             if distribution_percentage > print_threshold:
-                knapsack_instance_x_2 = KnapsackInstance.instance_by_hash[knapsack_instance_hash]
-                item_inclusion_string = get_item_inclusion_string(knapsack_instance_x_2.knapsack_items_repr_hashes, knapsack_instance_x.knapsack_items_repr_hashes)
+                child_knapsack_instance = KnapsackInstance.instance_by_hash[knapsack_instance_hash]
+                item_inclusion_string = get_item_inclusion_string(child_knapsack_instance.knapsack_items_repr_hashes, master_knapsack_instance.knapsack_items_repr_hashes)
 
-                if knapsack_instance_x_2.master_knapsack is None:  # This is mainly for type hint errors
+                if child_knapsack_instance.master_knapsack is None:  # This is mainly for type hint errors
                     raise RuntimeError("Cannot print for knapsack without master knapsack.")  # Note: This will crash if master knapsack has no items which will fit.
 
-                print(f"{item_inclusion_string} - Σv: {knapsack_instance_x_2.standing_value}, Σw: {knapsack_instance_x_2.master_knapsack.knapsack_capacity - knapsack_instance_x_2.knapsack_capacity} / {knapsack_instance_x_2.master_knapsack.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{" ***" if hash(knapsack_instance_x_2) in knapsack_instance_x_2.master_knapsack.optimal_terminal_nodes else ""}")
+                print(f"{item_inclusion_string} - Σv: {child_knapsack_instance.standing_value}, Σw: {child_knapsack_instance.master_knapsack.knapsack_capacity - child_knapsack_instance.knapsack_capacity} / {child_knapsack_instance.master_knapsack.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{" ***" if hash(child_knapsack_instance) in child_knapsack_instance.master_knapsack.optimal_terminal_nodes else ""}")
 
         print(f"\nTotal Distribution: {sum(distribution.values())}\n")
         print(f"Number of Terminal Nodes: {len(distribution)}\n")
 
 
-def solve_decision_variant(knapsack_instance_x: KnapsackInstance, param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, value_threshold: int) -> float:
+def solve_decision_variant(master_knapsack_instance: KnapsackInstance, param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, value_threshold: int) -> float:
         """
         Return the expectation (as a percent) of the the time a witness will be found in the knapsack decision problem instance for the given parameters and value threshold (target).
 
@@ -524,7 +524,7 @@ def solve_decision_variant(knapsack_instance_x: KnapsackInstance, param_alpha: f
 
         _validate_parameters_and_value_threshold(param_alpha, param_beta, param_gamma, param_delta, ProblemType.DECISION, value_threshold)
 
-        node_distribution = get_node_distribution(knapsack_instance_x, param_alpha, param_beta, param_gamma, param_delta, ProblemType.DECISION, value_threshold)
+        node_distribution = get_node_distribution(master_knapsack_instance, param_alpha, param_beta, param_gamma, param_delta, ProblemType.DECISION, value_threshold)
         percent_witness_found = sum([distribution_percentage for knapsack_instance_hash, distribution_percentage in node_distribution.items() if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value >= value_threshold])
 
         return percent_witness_found
