@@ -451,7 +451,7 @@ def print_node_distribution(knapsack_instance_x: KnapsackInstance, distribution:
                         item_inclusions[knapsack_item_match_index] = False
                         break
                     else:
-                        index_offset = knapsack_item_match_index
+                        index_offset = knapsack_item_match_index + 1
 
             item_inclusion_string = str([1 if item_included else 0 for item_included in item_inclusions])
 
