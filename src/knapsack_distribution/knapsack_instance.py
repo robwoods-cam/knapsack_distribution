@@ -191,9 +191,9 @@ class KnapsackInstance:
         cls._validate_knapsack_parameters(knapsack_items, knapsack_capacity, standing_value,
             standing_knapsack_items, master_knapsack)
 
-        hash_string = str(sorted(knapsack_items)) + "," + str(knapsack_capacity) + \
+        hash_string = str(sorted(knapsack_items, key=lambda knapsack_item: hash(knapsack_item))) + "," + str(knapsack_capacity) + \
             "," + str(standing_value) + "," + \
-            str([hash(knapsack_item) for knapsack_item in sorted(standing_knapsack_items)]) + "," + \
+            str([hash(knapsack_item) for knapsack_item in sorted(standing_knapsack_items, key=lambda knapsack_item: hash(knapsack_item))]) + "," + \
             str(hash(master_knapsack))
         knapsack_full_hash = hashlib.sha256(hash_string.encode("utf-8")).digest()
         knapsack_hash = int.from_bytes(knapsack_full_hash[:7], 'big')
