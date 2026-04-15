@@ -12,7 +12,7 @@ Copyright
 
 License
 -------
-This program is free software under the GNU Affero General Public License v3.  
+This program is free software under the GNU Affero General Public License v3.
 See the LICENSE file for full terms.
 """
 

@@ -51,7 +51,7 @@ def _get_knapsack_item_dominance_matrix(knapsack_items: list[KnapsackItem] | tup
 
     #     Returns
     #     -------
-#         knapsack_item_dominance_matrix : dict[int, set[int]]
+    #       knapsack_item_dominance_matrix : dict[int, set[int]]
             TODO
 
     """
@@ -226,7 +226,7 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
             return node_distribution
 
         def _search_for_witness(node_distribution: dict[int, float], value_threshold: int, param_delta: float, param_alpha: float) -> dict[int, float]:
-            """ Return the distribution of witness nodes reached in the search. 
+            """ Return the distribution of witness nodes reached in the search.
 
             The search for a witness is easier than an optima, as any witness found along the way is sufficient. You do not need
             to remember and compare all possible terminal nodes..
@@ -263,7 +263,7 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
         def _add_item_and_continue_search(node_distribution: dict[int, float], param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, problem_type: ProblemType, value_threshold: int | None) -> dict[int, float]:
             """ Return the node_distribution of subnodes based on adding an item to the knapsack and continuing the search.
 
-            The item added is probabilistic, based on the individuals alpha, beta, gamma, and delta. 
+            The item added is probabilistic, based on the individuals alpha, beta, gamma, and delta.
             """
 
             if knapsack_instance.child_nodes:
@@ -316,9 +316,9 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
         included_dominated_items_by_hash[hash(knapsack_instance)] = included_dominated_items
 
         # _non_dominated_terminal_nodes
-        #     return [terminal_node for terminal_node in self._terminal_nodes if not KnapsackInstance.instance_by_hash[terminal_node]._is_dominated or all(terminal_included_dominated_item in self._included_dominated_items for terminal_included_dominated_item in KnapsackInstance.instance_by_hash[terminal_node]._included_dominated_items)] 
+        #     return [terminal_node for terminal_node in self._terminal_nodes if not KnapsackInstance.instance_by_hash[terminal_node]._is_dominated or all(terminal_included_dominated_item in self._included_dominated_items for terminal_included_dominated_item in KnapsackInstance.instance_by_hash[terminal_node]._included_dominated_items)]
 
-        non_dominated_terminal_nodes = [terminal_node for terminal_node in knapsack_instance.terminal_nodes if not len(included_dominated_items_by_hash[terminal_node]) >= 1 or all(terminal_included_dominated_item in included_dominated_items for terminal_included_dominated_item in included_dominated_items_by_hash[terminal_node])] 
+        non_dominated_terminal_nodes = [terminal_node for terminal_node in knapsack_instance.terminal_nodes if not len(included_dominated_items_by_hash[terminal_node]) >= 1 or all(terminal_included_dominated_item in included_dominated_items for terminal_included_dominated_item in included_dominated_items_by_hash[terminal_node])]
 
         # _non_dominated_optimal_terminal_nodes
         #   return [terminal_node for terminal_node in self._optimal_terminal_nodes if not KnapsackInstance.instance_by_hash[terminal_node]._is_dominated or all(terminal_included_dominated_item in self._included_dominated_items for terminal_included_dominated_item in KnapsackInstance.instance_by_hash[terminal_node]._included_dominated_items)]
@@ -357,7 +357,7 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
         if not math.isclose(sum(node_distribution.values()), 1.0):
             raise RuntimeError('node distribution must equal 1')
 
-        # Store the node distribution so that if this node is reached by another path, the distribution can be fetched without additional calculations 
+        # Store the node distribution so that if this node is reached by another path, the distribution can be fetched without additional calculations
         distribution_by_hash[node_distribution_hash] = node_distribution
 
         return distribution_by_hash[node_distribution_hash]  # is node_distribution

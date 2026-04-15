@@ -109,7 +109,7 @@ class TestKnapsackItem(unittest.TestCase):
         """ Test the comparison between Knapsack Items.
 
         Ordering is done by density, however, to break ties, the larger item (in both value and weight)
-        is considered "greater", to enable strict ordering of non-identical items. 
+        is considered "greater", to enable strict ordering of non-identical items.
 
         large is the greatest
         medium all have the same density, but 2 is less than 1 and 3 in both value and weight
