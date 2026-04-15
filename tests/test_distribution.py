@@ -150,23 +150,23 @@ class TestDistribution(unittest.TestCase):
 
         sorted_node_distribution = {key: value for key, value in sorted(node_distribution.items(), key=lambda item: item[1], reverse=True)}
 
-        self.assertEqual(list(sorted_node_distribution.keys())[0], 25120288178553251)
-        self.assertEqual(list(sorted_node_distribution.keys())[1], 6357217347003608)
-        self.assertEqual(list(sorted_node_distribution.keys())[2], 7741808502296642)
-        self.assertEqual(list(sorted_node_distribution.keys())[3], 3854787489353282)
-        self.assertEqual(list(sorted_node_distribution.keys())[4], 19588103317795958)
+        self.assertEqual(list(sorted_node_distribution.keys())[0], 71368893422976312)
+        self.assertEqual(list(sorted_node_distribution.keys())[1], 28842055690456967)
+        self.assertEqual(list(sorted_node_distribution.keys())[2], 34553217198694031)
+        self.assertEqual(list(sorted_node_distribution.keys())[3], 32088055266112979)
+        self.assertEqual(list(sorted_node_distribution.keys())[4], 48833112867671063)
 
-        self.assertAlmostEqual(node_distribution[25120288178553251], 0.776998932560427)
-        self.assertAlmostEqual(node_distribution[6357217347003608], 0.162691836871925)
-        self.assertAlmostEqual(node_distribution[7741808502296642], 0.0440568067760513)
-        self.assertAlmostEqual(node_distribution[3854787489353282], 0.0129266429474177)
-        self.assertAlmostEqual(node_distribution[19588103317795958],  0.00332578084417862)
+        self.assertAlmostEqual(node_distribution[71368893422976312], 0.776998932560427)
+        self.assertAlmostEqual(node_distribution[28842055690456967], 0.162691836871925)
+        self.assertAlmostEqual(node_distribution[34553217198694031], 0.0440568067760513)
+        self.assertAlmostEqual(node_distribution[32088055266112979], 0.0129266429474177)
+        self.assertAlmostEqual(node_distribution[48833112867671063],  0.00332578084417862)
 
-        self.assertEqual(KnapsackInstance.instance_by_hash[25120288178553251].standing_knapsack_items, (knapsack_items[0], knapsack_items[1]))
-        self.assertEqual(KnapsackInstance.instance_by_hash[6357217347003608].standing_knapsack_items, (knapsack_items[0], knapsack_items[4]))
-        self.assertEqual(KnapsackInstance.instance_by_hash[7741808502296642].standing_knapsack_items, (knapsack_items[1], knapsack_items[4]))
-        self.assertEqual(KnapsackInstance.instance_by_hash[3854787489353282].standing_knapsack_items, (knapsack_items[1], knapsack_items[2]))
-        self.assertEqual(KnapsackInstance.instance_by_hash[19588103317795958].standing_knapsack_items, (knapsack_items[2], knapsack_items[4]))
+        self.assertEqual(KnapsackInstance.instance_by_hash[71368893422976312].standing_knapsack_items, (knapsack_items[0], knapsack_items[1]))
+        self.assertEqual(KnapsackInstance.instance_by_hash[28842055690456967].standing_knapsack_items, (knapsack_items[0], knapsack_items[4]))
+        self.assertEqual(KnapsackInstance.instance_by_hash[34553217198694031].standing_knapsack_items, (knapsack_items[1], knapsack_items[4]))
+        self.assertEqual(KnapsackInstance.instance_by_hash[32088055266112979].standing_knapsack_items, (knapsack_items[1], knapsack_items[2]))
+        self.assertEqual(KnapsackInstance.instance_by_hash[48833112867671063].standing_knapsack_items, (knapsack_items[2], knapsack_items[4]))
 
     def test_get_node_distribution_paper_appendix_1_optimisation(self):
         """ Test the node distribution calculation.
@@ -191,20 +191,20 @@ class TestDistribution(unittest.TestCase):
 
         sorted_node_distribution = {key: value for key, value in sorted(node_distribution.items(), key=lambda item: item[1], reverse=True)}
 
-        self.assertEqual(list(sorted_node_distribution.keys())[0], 19607764745246483)
-        self.assertEqual(list(sorted_node_distribution.keys())[1], 27586698572505746)
-        self.assertEqual(list(sorted_node_distribution.keys())[2], 67530635375991832)
-        self.assertEqual(list(sorted_node_distribution.keys())[3], 11599976948146986)
+        self.assertEqual(list(sorted_node_distribution.keys())[0], 37853183573148781)
+        self.assertEqual(list(sorted_node_distribution.keys())[1], 31360667515814717)
+        self.assertEqual(list(sorted_node_distribution.keys())[2], 18184359099941993)
+        self.assertEqual(list(sorted_node_distribution.keys())[3], 39006237199894810)
 
-        self.assertAlmostEqual(node_distribution[19607764745246483], 0.7487276377548032)
-        self.assertAlmostEqual(node_distribution[27586698572505746], 0.1534085161146231)
-        self.assertAlmostEqual(node_distribution[67530635375991832], 0.08380264655104011)
-        self.assertAlmostEqual(node_distribution[11599976948146986], 0.014061199579533638)
+        self.assertAlmostEqual(node_distribution[37853183573148781], 0.7487276377548032)
+        self.assertAlmostEqual(node_distribution[31360667515814717], 0.1534085161146231)
+        self.assertAlmostEqual(node_distribution[18184359099941993], 0.08380264655104011)
+        self.assertAlmostEqual(node_distribution[39006237199894810], 0.014061199579533638)
 
-        self.assertEqual(KnapsackInstance.instance_by_hash[19607764745246483].standing_knapsack_items, (knapsack_items[0], knapsack_items[1], knapsack_items[3]))
-        self.assertEqual(KnapsackInstance.instance_by_hash[27586698572505746].standing_knapsack_items, (knapsack_items[0], knapsack_items[2]))
-        self.assertEqual(KnapsackInstance.instance_by_hash[67530635375991832].standing_knapsack_items, (knapsack_items[2], knapsack_items[3]))
-        self.assertEqual(KnapsackInstance.instance_by_hash[11599976948146986].standing_knapsack_items, (knapsack_items[1], knapsack_items[2]))
+        self.assertEqual(KnapsackInstance.instance_by_hash[37853183573148781].standing_knapsack_items, (knapsack_items[0], knapsack_items[1], knapsack_items[3]))
+        self.assertEqual(KnapsackInstance.instance_by_hash[31360667515814717].standing_knapsack_items, (knapsack_items[0], knapsack_items[2]))
+        self.assertEqual(KnapsackInstance.instance_by_hash[18184359099941993].standing_knapsack_items, (knapsack_items[2], knapsack_items[3]))
+        self.assertEqual(KnapsackInstance.instance_by_hash[39006237199894810].standing_knapsack_items, (knapsack_items[1], knapsack_items[2]))
 
     def test_print_node_distribution(self):
         """ Test the printed message from print_node_distribution.

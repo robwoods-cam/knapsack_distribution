@@ -36,14 +36,14 @@ class TestKnapsackInstance(unittest.TestCase):
         knapsack_capacity = 100
         knapsack_instance = KnapsackInstance.create(knapsack_items, knapsack_capacity)
 
-        hash_string = str(sorted(knapsack_items)) + "," + str(knapsack_capacity) + "," + str(0) + "," + str([]) + "," + str(hash(None))
+        hash_string = str(sorted(knapsack_items, key=lambda knapsack_item: hash(knapsack_item))) + "," + str(knapsack_capacity) + "," + str(0) + "," + str([]) + "," + str(hash(None))
         full_hash = hashlib.sha256(hash_string.encode("utf-8")).digest()
         knapsack_hash = int.from_bytes(full_hash[:7], 'big')
 
         self.assertEqual(hash(knapsack_instance), knapsack_hash)
-        self.assertEqual(hash(knapsack_instance), 39192840581773738)
+        self.assertEqual(hash(knapsack_instance), 6338019714886162)
         self.assertEqual(knapsack_instance._full_hash, full_hash)
-        self.assertEqual(knapsack_instance._full_hash, b'\x8b=\xaeL\x9dy\xaa\x90QCQ\x1dJ\x03\xfc\xf9\xb2=3(\xce\xf1\xf0\xbdJf\xc0\x82v\xb6\x9d\xc9')
+        self.assertEqual(knapsack_instance._full_hash, b"\x16\x84e5\xafj\x12'=\x8a!l\xa8\xbbO\x88\x02=X\x8c\xde\xc0T\x97\xdd\xff\x9e\x7f\t\xc0`A")
 
 
 if __name__ == '__main__':
