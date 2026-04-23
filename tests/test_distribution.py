@@ -228,7 +228,7 @@ class TestDistribution(unittest.TestCase):
             buf = io.StringIO()
             sys.stdout = buf
             print_node_distribution(knapsack_instance, node_distribution, (param_alpha, param_beta, param_gamma, param_delta), 0.01)
-            expected_print = "Inputs\n\nParameters: α = 0.7, β = 0.75, γ = 0.4, δ = 0.5\n\nKnapsack Problem Variant: Optimisation\n\nItems: (v: 12, w: 7), (v: 8, w: 5), (v: 14, w: 8), (v: 9, w: 4)\n\nBudget: 16\n\n-------------------------------------\n\nOutput\n\nTerminal Nodes (*** for optimal):\n[1, 1, 0, 1] - Σv: 29, Σw: 16 / 16 - 74.873% ***\n[1, 0, 1, 0] - Σv: 26, Σw: 15 / 16 - 15.341%\n[0, 0, 1, 1] - Σv: 23, Σw: 12 / 16 - 8.380%\n[0, 1, 1, 0] - Σv: 22, Σw: 13 / 16 - 1.406%\n\nTotal Distribution: 1.0\n\nNumber of Terminal Nodes: 4\n\n"
+            expected_print = "Inputs\n\nParameters: α = 0.7, β = 0.75, γ = 0.4, δ = 0.5\n\nKnapsack Problem Variant: Optimisation\n\nItems: (v: 12, w: 7), (v: 8, w: 5), (v: 14, w: 8), (v: 9, w: 4)\n\nBudget: 16\n\n-------------------------------------\n\nOutput\n\nTerminal Nodes (*** for optimal):\n[1, 1, 0, 1] - Σv: 29, Σw: 16 / 16 - 74.873% ***\n[1, 0, 1, 0] - Σv: 26, Σw: 15 / 16 - 15.341%\n[0, 0, 1, 1] - Σv: 23, Σw: 12 / 16 - 8.380%\n[0, 1, 1, 0] - Σv: 22, Σw: 13 / 16 - 1.406%\n\nTotal Distribution: 1.0\n\nNumber of Terminal Nodes: 4 (unmerged: 4)\n\n"
 
             self.assertEqual(buf.getvalue(), expected_print)
         finally:
