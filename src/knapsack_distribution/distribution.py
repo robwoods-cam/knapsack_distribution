@@ -366,7 +366,7 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
     return _get_child_node_distribution(knapsack_instance, param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
 
 
-def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribution: dict[int, float], parameters: tuple[float, float, float, float] | None = None, print_threshold: float = 0.0001) -> None:
+def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribution: dict[int, float], parameters: tuple[float, float, float, float] | None = None, print_threshold: float = 0.0001, show_unmerged_distribution: bool = False) -> None:
         """ Print the knapsack node distribution with all relevant information.
 
         Prints the distribution (as a percentage of 1) that someone will end in each terminal node from this given Knapsack Instance.
@@ -430,7 +430,7 @@ def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribu
             if not isinstance(print_threshold, float):
                 raise TypeError
 
-            if not 0.0 < print_threshold <= 1.0:
+            if not 0.0 <= print_threshold <= 1.0:
                 raise ValueError
 
 
@@ -445,14 +445,26 @@ def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribu
             item_inclusions = [True] * len(master_knapsack_items_repr_hashes)
 
             for terminal_node_item_hash in terminal_node_knapsack_items_repr_hash:
-                index_offset = 0
-                while True:
-                    knapsack_item_match_index = master_knapsack_items_repr_hashes.index(terminal_node_item_hash, index_offset)
-                    if item_inclusions[knapsack_item_match_index] == True:
-                        item_inclusions[knapsack_item_match_index] = False
+                for i in range(len(master_knapsack_items_repr_hashes) - 1, -1, -1):
+                    if master_knapsack_items_repr_hashes[i] == terminal_node_item_hash and item_inclusions[i]:
+                        item_inclusions[i] = False
                         break
-                    else:
-                        index_offset = knapsack_item_match_index + 1
+
+            item_inclusion_string = str([1 if item_included else 0 for item_included in item_inclusions])
+
+            return item_inclusion_string
+
+        def get_unmerged_item_inclusion_string(terminal_node_knapsack_items: list[KnapsackItem], master_knapsack_items: list[KnapsackItem]) -> str:
+            """ Return a string of the items included (1s and 0s) base on the order they are specified in `master_knapsack_items`.
+
+            This method does not merge repeated items. It looks at which item was included and prints that, rather than shifting all distribution to the first instance of a repeated item."""
+            item_inclusions = [True] * len(master_knapsack_items)
+
+            for terminal_node_item in terminal_node_knapsack_items:
+                for i in range(len(master_knapsack_items) - 1, -1, -1):
+                    if master_knapsack_items[i] is terminal_node_item and item_inclusions[i]:
+                        item_inclusions[i] = False
+                        break
 
             item_inclusion_string = str([1 if item_included else 0 for item_included in item_inclusions])
 
@@ -460,8 +472,6 @@ def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribu
 
         validate_distribution(distribution)
         validate_print_parameters(parameters, print_threshold)
-
-        distribution = dict(sorted(distribution.items(), key=lambda x: x[1], reverse=True))
 
         print("Inputs\n")
         if parameters: print(f"Parameters: \u03b1 = {parameters[0]}, \u03B2 = {parameters[1]}, \u03b3 = {parameters[2]}, \u03B4 = {parameters[3]}\n")  # alpha (\u03b1), beta (\u03B2), gamma (\u03b3), delta (\u03B4)
@@ -474,18 +484,44 @@ def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribu
         print("Output\n")
         print("Terminal Nodes (*** for optimal):")
 
-        for knapsack_instance_hash, distribution_percentage in distribution.items():
-            if distribution_percentage > print_threshold:
-                child_knapsack_instance = KnapsackInstance.instance_by_hash[knapsack_instance_hash]
-                item_inclusion_string = get_item_inclusion_string(child_knapsack_instance.knapsack_items_repr_hashes, master_knapsack_instance.knapsack_items_repr_hashes)
+        merged_distribution: dict[str, float] = {}
+        item_inclusion_string_to_first_instance: dict[str, int] = {}
 
+        for knapsack_instance_hash, distribution_percentage in distribution.items():
+            child_knapsack_instance = KnapsackInstance.instance_by_hash[knapsack_instance_hash]
+            item_inclusion_string = get_item_inclusion_string(child_knapsack_instance.knapsack_items_repr_hashes, master_knapsack_instance.knapsack_items_repr_hashes)
+
+            if item_inclusion_string not in merged_distribution:
+                merged_distribution[item_inclusion_string] = 0.0
+                item_inclusion_string_to_first_instance[item_inclusion_string] = knapsack_instance_hash
+
+            merged_distribution[item_inclusion_string] += distribution_percentage
+
+        for item_inclusion_string, distribution_percentage in dict(sorted(merged_distribution.items(), key=lambda x: x[1], reverse=True)).items():
+            if distribution_percentage >= print_threshold:
+
+                child_knapsack_instance = KnapsackInstance.instance_by_hash[item_inclusion_string_to_first_instance[item_inclusion_string]]
                 if child_knapsack_instance.master_knapsack is None:  # This is mainly for type hint errors
                     raise RuntimeError("Cannot print for knapsack without master knapsack.")  # Note: This will crash if master knapsack has no items which will fit.
 
                 print(f"{item_inclusion_string} - Σv: {child_knapsack_instance.standing_value}, Σw: {child_knapsack_instance.master_knapsack.knapsack_capacity - child_knapsack_instance.knapsack_capacity} / {child_knapsack_instance.master_knapsack.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{" ***" if hash(child_knapsack_instance) in child_knapsack_instance.master_knapsack.optimal_terminal_nodes else ""}")
 
-        print(f"\nTotal Distribution: {sum(distribution.values())}\n")
-        print(f"Number of Terminal Nodes: {len(distribution)}\n")
+
+        if show_unmerged_distribution:
+            print("\n---\n\nUnmerged Terminal Nodes:")
+
+            for knapsack_instance_hash, distribution_percentage in dict(sorted(distribution.items(), key=lambda x: x[1], reverse=True)).items():
+                if distribution_percentage >= print_threshold:
+                    child_knapsack_instance = KnapsackInstance.instance_by_hash[knapsack_instance_hash]
+                    item_inclusion_string = get_unmerged_item_inclusion_string(child_knapsack_instance.knapsack_items, master_knapsack_instance.knapsack_items)
+
+                    if child_knapsack_instance.master_knapsack is None:  # This is mainly for type hint errors
+                        raise RuntimeError("Cannot print for knapsack without master knapsack.")  # Note: This will crash if master knapsack has no items which will fit.
+
+                    print(f"{item_inclusion_string} - Σv: {child_knapsack_instance.standing_value}, Σw: {child_knapsack_instance.master_knapsack.knapsack_capacity - child_knapsack_instance.knapsack_capacity} / {child_knapsack_instance.master_knapsack.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{" ***" if hash(child_knapsack_instance) in child_knapsack_instance.master_knapsack.optimal_terminal_nodes else ""}")
+
+        print(f"\nTotal Distribution: {sum(merged_distribution.values())}\n")
+        print(f"Number of Terminal Nodes: {len(merged_distribution)} (unmerged: {len(distribution)})\n")
 
 
 def solve_decision_variant(master_knapsack_instance: KnapsackInstance, param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, value_threshold: int) -> float:
