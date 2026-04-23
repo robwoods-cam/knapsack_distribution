@@ -313,17 +313,18 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
         # TODO fix (if can) issue is this need to be done
         # TODO this probably doesnt need to be redone
         included_dominated_items: list[KnapsackItem] = [standing_knapsack_item for standing_knapsack_item in knapsack_instance.standing_knapsack_items if any(hash(knapsack_item_x) in knapsack_item_dominance_matrix[hash(standing_knapsack_item)] for knapsack_item_x in knapsack_instance.knapsack_items)]
+        included_dominated_items_hashes: list[int] = [hash(knapsack_item) for knapsack_item in included_dominated_items]
         included_dominated_items_by_hash[hash(knapsack_instance)] = included_dominated_items
 
         # _non_dominated_terminal_nodes
         #     return [terminal_node for terminal_node in self._terminal_nodes if not KnapsackInstance.instance_by_hash[terminal_node]._is_dominated or all(terminal_included_dominated_item in self._included_dominated_items for terminal_included_dominated_item in KnapsackInstance.instance_by_hash[terminal_node]._included_dominated_items)]
 
-        non_dominated_terminal_nodes = [terminal_node for terminal_node in knapsack_instance.terminal_nodes if not len(included_dominated_items_by_hash[terminal_node]) >= 1 or all(terminal_included_dominated_item in included_dominated_items for terminal_included_dominated_item in included_dominated_items_by_hash[terminal_node])]
+        non_dominated_terminal_nodes = [terminal_node for terminal_node in knapsack_instance.terminal_nodes if len(included_dominated_items_by_hash[terminal_node]) == 0 or all(hash(terminal_included_dominated_item) in included_dominated_items_hashes for terminal_included_dominated_item in included_dominated_items_by_hash[terminal_node])]
 
         # _non_dominated_optimal_terminal_nodes
         #   return [terminal_node for terminal_node in self._optimal_terminal_nodes if not KnapsackInstance.instance_by_hash[terminal_node]._is_dominated or all(terminal_included_dominated_item in self._included_dominated_items for terminal_included_dominated_item in KnapsackInstance.instance_by_hash[terminal_node]._included_dominated_items)]
 
-        non_dominated_optimal_terminal_nodes = [terminal_node for terminal_node in knapsack_instance.optimal_terminal_nodes if not len(included_dominated_items_by_hash[terminal_node]) >= 1 or all(terminal_included_dominated_item in included_dominated_items for terminal_included_dominated_item in included_dominated_items_by_hash[terminal_node])]
+        non_dominated_optimal_terminal_nodes = [terminal_node for terminal_node in knapsack_instance.optimal_terminal_nodes if len(included_dominated_items_by_hash[terminal_node]) == 0 or all(hash(terminal_included_dominated_item) in included_dominated_items_hashes for terminal_included_dominated_item in included_dominated_items_by_hash[terminal_node])]
 
         # If this is a terminal node, there are no child nodes, so the distribution stops here.
         if knapsack_instance.is_terminal_node:
