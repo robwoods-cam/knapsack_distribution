@@ -128,7 +128,7 @@ Python 3.12+ is required.
 ### Example:
 
 ```python
-from knapsack_distribution import KnapsackItem, KnapsackInstance
+from knapsack_distribution import KnapsackItem, KnapsackInstance, ProblemType, get_node_distribution, print_node_distribution
 
 # Define knapsack items
 knapsack_items = [

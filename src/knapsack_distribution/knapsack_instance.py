@@ -27,70 +27,73 @@ from .knapsack_item import KnapsackItem
 
 @dataclass(init=False, frozen=True, slots=True)
 class KnapsackInstance:
-    """ A dataclass to represent a Knapsack Problem Instance.
+    """ A node in the knapsack search tree, representing a (sub)problem reached by including zero or
+    more items so far.
+
+    The root node is the full problem (all items available, full capacity, nothing included). Each
+    child node is reached by adding one feasible item: that item moves from `knapsack_items` to
+    `standing_knapsack_items`, `knapsack_capacity` drops by its weight, and `standing_value` rises by
+    its value. A node whose state has been seen before (under the same master knapsack) is reused
+    rather than rebuilt — see `create` and `instance_by_hash`.
+
+    Instances are immutable and must be built with `create`; `__init__` is disabled.
 
 
     Pure knapsack Attributes
     ------------------------
     knapsack_items : tuple[KnapsackItem, ...]
-        All the possible `KnapsackItem`s to consider for addition to this node.
-        This is **not** the items included in the knapsack so far (that is `standing_knapsack_items`)
+        The `KnapsackItem`s still available to add at this node. This is **not** the items already
+        included in the knapsack so far (that is `standing_knapsack_items`).
     knapsack_capacity : int
-        The weight capacity of the `KnapsackInstance`, the remaining capacity for a child node (sub instance)
-    __hash__ : int
-        A unique value for the `KnapsackInstance`, this allows for multiple pathways to reach the same node and not
-        require recalculation
+        The remaining weight capacity at this node.
 
     Downward looking Attributes
     ---------------------------
     child_nodes : tuple[tuple[KnapsackItem, KnapsackInstance], ...] | None
-        All feasible (fits within constraint) child nodes created by adding one item to this node.
-        The `tuple` has the `KnapsackItem` to be added and the `KnapsackInstance` adding it creates.
+        Every feasible child node, as `(item_added, resulting_node)` pairs, one per item that still
+        fits within the remaining capacity. `None` at a terminal node.
     is_terminal_node : bool
-        A node is a terminal node if there are no possible feasible `child_nodes`.
-        A terminal node has no further child nodes, either because no further items fit or there are no items left.
-        This is also known as a capacity-constrained node or knapsack.
-    terminal_nodes  : frozenset[int]
-        The hashes of all `child_nodes` which are `terminal`.
-        Uses hash rather than KnapsackInstance instance due to set and the hash function being changed.
+        `True` when there are no feasible `child_nodes` (no remaining item fits, or no items are
+        left). A terminal node is a complete, capacity-constrained knapsack.
+    terminal_nodes : frozenset[int]
+        The hashes of every terminal node reachable from this node. Hashes are stored rather than
+        instances because the custom `__hash__` makes instances unsafe as `set` members.
     optimal_terminal_nodes : frozenset[int]
-        The hashes of all optimal (highest `standing_value`) feasible `child_node`.
-        Uses hash rather than KnapsackInstance instance due to set and the hash function being changed.
+        The hashes of the reachable terminal node(s) with the highest `standing_value`. There may be
+        higher-value terminal nodes under the master knapsack that are unreachable from this branch.
     _optimal_terminal_node_value : int
-        The value of the optimal terminal nodes (optimal only adding items from here)
+        The `standing_value` shared by the `optimal_terminal_nodes`.
 
     Upward looking Attributes
     -------------------------
     master_knapsack : KnapsackInstance | None
-        The original `KnapsackInstance` which this node spawned from.
-        If this is the original node, `master_knapsack` will be `None`
+        The root `KnapsackInstance` this node descends from. If this is the root node,
+        `master_knapsack` will be `None`.
     standing_value : int, default 0
-        The sum of values of items included in the knapsack
+        The total value of the items included so far (the items in `standing_knapsack_items`).
     standing_knapsack_items : tuple[KnapsackItem, ...]
-        All `KnapsackItem`s included to create this node from the `master_node` knapsack
+        The `KnapsackItem`s included to reach this node from the master knapsack.
 
     Class Attributes
     ----------------
     instance_by_hash : dict[int, KnapsackInstance]
-        a `dict` which can look up all created `KnapsackInstance`s based on their hash.
-        This allows merging of nodes as the same node does not need to be recreated, but instead referenced.
+        Maps every created node's hash to the node, so a state reached by multiple paths is built
+        once and then reused rather than recreated.
 
 
     Class Methods
     -------------
     **create** : *Callable*
-        create is used to create a `KnapsackInstance`.
-        `create` should be used rather than `__init__`.
+        Builds (or reuses) a `KnapsackInstance`; use this rather than `__init__`.
 
 
     Notes
     -----
-    * `create` should be used rather than `__init__` (init is fully disabled)
-    * hash includes the master_knapsack, this means if we get to an identical node but from a different starting
-        knapsack, everything will be processed again.
-    * self == other and hash(self) == hash(other) may give different results. __eq__ only compares the value and
-        weight of the item, allowing for sorting. However, the hash looks for unique items for branching.
-        This means that `KnapsackInstance`s should **not** be used as keys or in sets, but their hash instead.
+    * Use `create`, not `__init__` (which is fully disabled).
+    * The hash includes `master_knapsack`, so an identical item/capacity state reached under a
+        different master knapsack is treated as a distinct node and processed again.
+    * `__hash__` is unique per node and is the only safe way to key or store a `KnapsackInstance`;
+        instances must **not** be placed directly in a `set` or used as a `dict` key.
     """
     knapsack_items: tuple[KnapsackItem, ...]
     knapsack_capacity: int
@@ -116,8 +119,19 @@ class KnapsackInstance:
         standing_knapsack_items: tuple[KnapsackItem, ...] | list[KnapsackItem],
         master_knapsack: KnapsackInstance | None
         ) -> None:
-        """ Validate the type and value of `knapsack_items`, `knapsack_capacity`, `standing_value`,
-        `standing_knapsack_items`, `master_knapsack` """
+        """ Validate the types and values of the `create` parameters.
+
+        Checks `knapsack_items`, `knapsack_capacity`, `standing_value`, `standing_knapsack_items`,
+        and `master_knapsack`.
+
+
+        Raises
+        ------
+        TypeError
+            if any argument has the wrong type.
+        ValueError
+            if `knapsack_capacity` or `standing_value` is negative.
+        """
 
         if not (isinstance(knapsack_items, tuple | list) and
                 all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)):
@@ -152,40 +166,45 @@ class KnapsackInstance:
         standing_knapsack_items: tuple[KnapsackItem, ...] | list[KnapsackItem] | None = None,
         master_knapsack: KnapsackInstance | None = None
         ) -> KnapsackInstance:
-        """ `KnapsackInstance.create()` should be used rather than `__init__`
+        """ Create (or reuse) a `KnapsackInstance`; use this rather than `__init__`.
 
-        If a node (`KnapsackInstance`) already exists, the existing instance will be returned, rather than creating a
-        new one. If it does not already exist, a new instance will be created allowing for efficient branching.
+        If a node with the same state already exists in `instance_by_hash`, that existing instance is
+        returned rather than creating a new one. Otherwise a new instance is created and its child
+        nodes are built recursively, allowing efficient branching where distinct add-orders that
+        reach the same state share a single node.
 
 
         Parameters
         ----------
         knapsack_items : tuple[KnapsackItem, ...] | list[KnapsackItem]
-            a `list` of all the possible `KnapsackItem`s that should be considered
+            All the possible `KnapsackItem`s available to add at this node.
         knapsack_capacity : int
-            the weight capacity of the `KnapsackInstance`, the remaining capacity for a child node (sub instance)
-        standing_knapsack_items : tuple[KnapsackItem, ...] | list[KnapsackItem] | None (default None)
-            the items already standing in the knapsack instance
+            The remaining weight capacity at this node.
         standing_value : int, default 0
-            the sum of values of items already included in the knapsack
-        master_knapsack : KnapsackInstance | None
-            the original `KnapsackInstance` which this node spawned from. If this is the original node,
-            `master_knapsack` will be `None`
+            The total value of the items already included in the knapsack.
+        standing_knapsack_items : tuple[KnapsackItem, ...] | list[KnapsackItem] | None, default None
+            The items already included to reach this node; `None` is treated as empty.
+        master_knapsack : KnapsackInstance | None, default None
+            The root `KnapsackInstance` this node descends from. If this is the root node,
+            `master_knapsack` will be `None`.
 
 
         Raises
         ------
         TypeError
-            if `knapsack_items` and `standing_knapsack_items` are not a list or tuples of `KnapsackItem`s,
-            knapsack_capacity and standing_value are not `int`s,or `master_knapsack` is not either a `KnapsackInstance`
-            or `None.
+            if `knapsack_items` or `standing_knapsack_items` is not a `list`/`tuple` of
+            `KnapsackItem`s, `knapsack_capacity` or `standing_value` is not an `int`, or
+            `master_knapsack` is neither a `KnapsackInstance` nor `None`.
         ValueError
-            if `knapsack_capacity` or `standing_value` are negative.
+            if `knapsack_capacity` or `standing_value` is negative.
+        RuntimeError
+            if a hash collision is detected between two different nodes.
 
 
         Returns
         -------
-            KnapsackInstance
+        KnapsackInstance
+            The newly created or previously cached node.
         """
         standing_knapsack_items = [] if standing_knapsack_items is None else standing_knapsack_items
         cls._validate_knapsack_parameters(knapsack_items, knapsack_capacity, standing_value,
@@ -246,13 +265,15 @@ class KnapsackInstance:
         return self
 
     def __hash__(self) -> int:
-        """ Python uses 61 bit hashes (64-bit implementations), so we use the first 7 bytes of the SHA-256 as the hash.
+        """ Return a 56-bit hash derived from the first 7 bytes of the node's SHA-256 digest.
 
-        This only works on 64-bit implementations of Python."""
+        CPython uses 61-bit hashes on 64-bit builds, so 7 bytes (56 bits) fit safely; this requires
+        a 64-bit interpreter.
+        """
         return int.from_bytes(self._full_hash[:7], 'big')
 
     def _create_child_nodes(self) -> tuple[tuple[KnapsackItem, KnapsackInstance], ...] | None:
-        """ recursively create all the child nodes from this node """
+        """ Recursively build and return every feasible child node, or `None` if no item fits. """
         if len(self.knapsack_items) == 0:
             return None
 
@@ -273,6 +294,10 @@ class KnapsackInstance:
 
     @property
     def knapsack_items_repr_hashes(self) -> list[int]:
-        """ The hash of repr of each item.
-        This is used to merge identical items as repr will give the same hash for identical items."""
+        """ The `hash` of each available item's `repr`.
+
+        Because `repr` omits `knapsack_item_id`, identical items share a value here. This lets
+        `print_node_distribution` merge nodes that differ only by which copy of a repeated identical
+        item was included.
+        """
         return [hash(repr(knapsack_item)) for knapsack_item in self.knapsack_items]

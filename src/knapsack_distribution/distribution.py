@@ -28,32 +28,32 @@ from .problem_type import ProblemType
 
 
 def _get_knapsack_item_dominance_matrix(knapsack_items: list[KnapsackItem] | tuple[KnapsackItem, ...]) -> dict[int, set[int]]:
-    """ Sets the `KnapsackItem`s that dominate this `KnapsackItem`. TODO
+    """ Build a dominance matrix over `knapsack_items`.
 
-    #     Sets `_dominating_knapsack_item_hashes` to a `set` of `hash`es for all `knapsack_item`s in `knapsack_items` that dominate it.
-    #     A knapsack item dominates another if both the value is greater than the other value and the weight is less than the other weight and at least one is strictly.
+    An item *dominates* another when it is at least as valuable and no heavier, with at least one of
+    those comparisons strict. Two items with identical `value` and `weight` are broken apart by
+    `knapsack_item_id` (the lower-id item dominates), so a duplicated item is treated as a single
+    choice rather than two competing ones.
 
-    Checks to see if any `KnapsackItem` in `knapsack_items` dominates this `KnapsackItem`.
 
-    #     A knapsack item dominates another if both the value is greater than the other value and the weight is less than the other weight and at least one is strictly.
+    Parameters
+    ----------
+    knapsack_items : list[KnapsackItem] | tuple[KnapsackItem, ...]
+        The items to compare. Every item must be distinct by `hash`.
 
-    #     Parameters
-    #     ----------
-    #     knapsack_items : list[KnapsackItem]
-    #         A list of `KnapsacksItems` to be checked for dominance
 
-    #     Raises
-    #     ------
-    #     TypeError
-    #         if a list of `KnapsackItem`s is not supplied
-    #     ValueError
-    #         if the list of dominating `KnapsackItem`s includes this `KnapsackItem` (self dominance) TODO
+    Raises
+    ------
+    TypeError
+        if `knapsack_items` is not a `list`/`tuple` of `KnapsackItem`s.
+    ValueError
+        if `knapsack_items` contains the same item more than once (by `hash`).
 
-    #     Returns
-    #     -------
-    #       knapsack_item_dominance_matrix : dict[int, set[int]]
-            TODO
 
+    Returns
+    -------
+    knapsack_item_dominance_matrix : dict[int, set[int]]
+        Maps each item's `hash` to the set of hashes of the items that dominate it.
     """
 
     knapsack_item_dominance_matrix: dict[int, set[int]] = {}
@@ -76,34 +76,34 @@ def _get_knapsack_item_dominance_matrix(knapsack_items: list[KnapsackItem] | tup
 
 
 def _validate_parameters_and_value_threshold(param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, problem_type: ProblemType, value_threshold: int | None) -> None:
-    """ Validate all parameters and the value threshold for the given problem type.
+    """ Validate the four behavioural parameters and `value_threshold` for the given problem type.
 
     Parameters
     ----------
     param_alpha : float
-        search/global optimisation parameter
-        alpha = 0 is a special case where we do not jump to the optimal at all, used for 'item-by-item' search
+        Search / global-optimisation parameter. Must be in (0, 1] for an optimisation problem and in
+        [0, 1] for a decision problem, where `param_alpha` = 0 is the special case of never searching
+        for the global solution (pure 'item-by-item' search).
     param_beta : float
-        density preference/local optimisation parameter
+        Density-preference (local-optimisation) parameter, in [0, 1).
     param_gamma : float
-        complexity aversion/weight preference parameter
+        Complexity-aversion (weight-preference) parameter, in [0, 1).
     param_delta : float
-        item-level rationality parameter
-    problem_type: ProblemType
-        if the problem is optimisation or decision
-    value_threshold: int | None
-        the value target for the decision problem
+        Item-level rationality (dominance-avoidance) parameter, in [0, 1].
+    problem_type : ProblemType
+        Whether the problem is optimisation or decision.
+    value_threshold : int | None
+        The target value for a decision problem; must be `None` for an optimisation problem.
 
     Raises
     ------
     TypeError
-        `problem_type` is not `ProblemType`
-        `param_alpha`, `param_beta`, `param_gamma`, or `param_delta` are not float
-        `value_threshold` is not int for decision task and None for optimisation task
+        if `problem_type` is not a `ProblemType`; if any of `param_alpha`, `param_beta`,
+        `param_gamma`, `param_delta` is not a `float`; or if `value_threshold` is not an `int` for a
+        decision problem / not `None` for an optimisation problem.
     ValueError
-        `problem_type` is not recognised
-        `param_alpha`, `param_beta`, `param_gamma`, or `param_delta` are not in valid range
-        `value_threshold` is negative for decision task
+        if `problem_type` is unrecognised, any parameter falls outside its valid range, or
+        `value_threshold` is negative for a decision problem.
 
     Returns
     -------
@@ -152,49 +152,51 @@ def _validate_parameters_and_value_threshold(param_alpha: float, param_beta: flo
 
 
 def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, problem_type: ProblemType = ProblemType.OPTIMISATION, value_threshold: int | None = None) -> dict[int, float]:
-    """ Get the distribution that someone will end in each terminal node from this given Knapsack Instance.
-    Get the distribution (as a percentage of 1) that someone will end in each terminal node from this given Knapsack Instance.
-    This is based on the supplied alpha, beta, gamma, and delta parameters.
-    Node distribution only considers feasible (at or under capacity) terminal (no more items will fit in the knapsack) nodes.
+    """ Compute the probability distribution over the terminal nodes reachable from `knapsack_instance`.
 
+    Returns, for each reachable terminal node, the probability (a fraction of 1) that a
+    decision-maker with the given behavioural parameters ends in that node. Only feasible (at or
+    under capacity) terminal (no more items will fit in the knapsack) nodes are considered, and the
+    probabilities sum to 1.
 
-    #     Non-dominated terminal nodes is from the perspective that no items are added from this node onwards which are dominated.
-    #     Dominated items may already have been added, as long as no further items are added.
-    #     Mathematically, in these nodes, there are no-dominated items included unless the item was already included at this node.
+    At each node the probability mass is split between a brute-force search for the global solution
+    (an optimum, or a witness for the decision variant) and probabilistically adding one more item
+    and continuing from the resulting child node.
 
     Parameters
     ----------
+    knapsack_instance : KnapsackInstance
+        The node to compute the distribution from (typically the root / master knapsack).
     param_alpha : float
-        search/global optimisation parameter
-        alpha = 0 is a special case where we do not jump to the optimal at all, used for 'item-by-item' search
+        Search / global-optimisation parameter. `param_alpha` = 0 is the special case of never
+        searching for the global solution, used for 'item-by-item' search.
     param_beta : float
-        density preference/local optimisation parameter
+        Density-preference (local-optimisation) parameter.
     param_gamma : float
-        complexity aversion/weight preference parameter
+        Complexity-aversion (weight-preference) parameter.
     param_delta : float
-        item-level rationality parameter
-    problem_type: ProblemType
-        if the problem is optimisation or decision (default = optimisation)
-    value_threshold: int | None
-        the value target for the decision problem
+        Item-level rationality (dominance-avoidance) parameter.
+    problem_type : ProblemType, default ProblemType.OPTIMISATION
+        Whether to search for an optimum (optimisation) or a witness (decision).
+    value_threshold : int | None, default None
+        The target value for a decision problem; must be `None` for an optimisation problem.
 
     Raises
     ------
     RuntimeError
-        if the sum of node distribution is not close to 1
+        if the computed node distribution does not sum to (close to) 1.
     TypeError
-        `param_alpha`, `param_beta`, `param_gamma`, or `param_delta` are not float
-        `problem_type` is not `ProblemType`
-        `value_threshold` is not int for decision task and None for optimisation task
+        if any of `param_alpha`, `param_beta`, `param_gamma`, `param_delta` is not a `float`; if
+        `problem_type` is not a `ProblemType`; or if `value_threshold` is not an `int` for a
+        decision problem / not `None` for an optimisation problem.
     ValueError
-        `problem_type` is not recognised
-        `param_alpha`, `param_beta`, `param_gamma`, or `param_delta` are not in valid range
-        `value_threshold` is negative for decision task
+        if `problem_type` is unrecognised, any parameter is out of range, or `value_threshold` is
+        negative for a decision problem.
 
     Returns
     -------
     node_distribution : dict[int, float]
-        A dict of the feasible terminal nodes with the percentage that one will end in each terminal node based on `beta`
+        Maps each reachable terminal node's `hash` to the probability of ending in that node.
     """
 
     distribution_by_hash: dict[int, dict[int, float]] = {}
@@ -228,10 +230,10 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
         def _search_for_witness(node_distribution: dict[int, float], value_threshold: int, param_delta: float, param_alpha: float) -> dict[int, float]:
             """ Return the distribution of witness nodes reached in the search.
 
-            The search for a witness is easier than an optima, as any witness found along the way is sufficient. You do not need
-            to remember and compare all possible terminal nodes..
+            The search for a witness is easier than for an optimum, as any witness found along the way is sufficient. You do not
+            need to remember and compare all possible terminal nodes.
             The search is split between fully removing dominated terminal nodes (from the perspective of this node) and including
-            all dominated terminal nodes, in a ratio based on the individuals delta.
+            all dominated terminal nodes, in a ratio based on the individual's delta.
             When there are multiple witness terminal nodes, the probability of finding each one is given by the likelihood
             of running into the given terminal node in the search by adding 'random' items.
             """
@@ -263,7 +265,7 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
         def _add_item_and_continue_search(node_distribution: dict[int, float], param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, problem_type: ProblemType, value_threshold: int | None) -> dict[int, float]:
             """ Return the node_distribution of subnodes based on adding an item to the knapsack and continuing the search.
 
-            The item added is probabilistic, based on the individuals alpha, beta, gamma, and delta.
+            The item added is probabilistic, based on the individual's alpha, beta, gamma, and delta.
             """
 
             if knapsack_instance.child_nodes:
@@ -367,33 +369,47 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
 
 
 def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribution: dict[int, float], parameters: tuple[float, float, float, float] | None = None, print_threshold: float = 0.0001, show_unmerged_distribution: bool = False) -> None:
-        """ Print the knapsack node distribution with all relevant information.
+        """ Print the terminal-node distribution for a knapsack instance in a readable form.
 
-        Prints the distribution (as a percentage of 1) that someone will end in each terminal node from this given Knapsack Instance.
-        This is based on the supplied distribution, using the alpha, beta, gamma, and delta parameters to calculate the distribution.
-        Node distribution only considers feasible (at or under capacity) terminal (no more items will fit in the knapsack) nodes.
-        Nodes are converted back to the a 1 and 0 binary list of item inclusions, based on the order the items were supplied to the
-        master node Knapsack.
+        Each terminal node is shown as a binary (1 and 0) list of item inclusions, based on the order
+        the items were supplied to the master node knapsack, together with its total value, total
+        weight against capacity, and probability (as a percentage of 1); optimal nodes are marked
+        with `***`. Only feasible (at or under capacity) terminal (no more items will fit in the
+        knapsack) nodes appear. By default, terminal nodes that differ only by which copy of a
+        repeated identical item was included are merged.
 
-        Also prints the ordered list of knapsack items and the count of total terminal nodes reached.
+        Also prints the ordered list of knapsack items and the count of terminal nodes reached.
 
         Parameters
         ----------
+        master_knapsack_instance : KnapsackInstance
+            The root knapsack the `distribution` was computed from; its item order defines the
+            inclusion strings.
         distribution : dict[int, float]
-            the probability distribution of each node, by node hash and percentage
-        parameters : tuple[float, float, float, float] | None
-            the parameters used to calculate the distribution (default = None)
-        print_threshold : float
-            print any node with a distribution greater than to equal to the print threshold (default = 0.0001)
+            The probability distribution to print, mapping each terminal node's `hash` to its
+            probability (as produced by `get_node_distribution`).
+        parameters : tuple[float, float, float, float] | None, default None
+            The `(alpha, beta, gamma, delta)` parameters used to calculate the distribution, printed
+            in the header when given.
+        print_threshold : float, default 0.0001
+            Only terminal nodes with a probability greater than or equal to this are printed.
+        show_unmerged_distribution : bool, default False
+            If `True`, additionally print the unmerged distribution, distinguishing which copy of a
+            repeated identical item was included.
 
         Raises
         ------
+        TypeError
+            if `distribution` or the print parameters have the wrong types.
+        ValueError
+            if `distribution` does not sum to 1, or a print parameter is out of range.
         RuntimeError
-            Difference in inclusion strings
-            No `master_knapsack`
+            if a node to be printed has no `master_knapsack`.
 
 
-        Returns: None
+        Returns
+        -------
+        None
         """
 
         def validate_distribution(distribution: dict[int, float]) -> None:
@@ -525,38 +541,40 @@ def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribu
 
 
 def solve_decision_variant(master_knapsack_instance: KnapsackInstance, param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, value_threshold: int) -> float:
-        """
-        Return the expectation (as a percent) of the the time a witness will be found in the knapsack decision problem instance for the given parameters and value threshold (target).
+        """ Return the probability that a decision-maker finds a witness for the decision variant.
+
+        Returns the expected fraction of the time (as a probability between 0 and 1) that a
+        decision-maker with the given parameters reaches a feasible terminal node whose total value
+        meets or exceeds `value_threshold` (the target).
 
         Parameters
         ----------
+        master_knapsack_instance : KnapsackInstance
+            The root knapsack to solve.
         param_alpha : float
-            search/global optimisation parameter
-            alpha = 0 is a special case where we do not jump to the optimal at all, used for 'item-by-item' search
+            Search / global-optimisation parameter. `param_alpha` = 0 is the special case of never
+            searching for a witness, used for 'item-by-item' search.
         param_beta : float
-            density preference/local optimisation parameter
+            Density-preference (local-optimisation) parameter.
         param_gamma : float
-            complexity aversion/weight preference parameter
+            Complexity-aversion (weight-preference) parameter.
         param_delta : float
-            item-level rationality parameter
-        problem_type: ProblemType
-            if the problem is optimisation or decision (default = optimisation)
-        value_threshold: int | None
-            the value target for the decision problem
+            Item-level rationality (dominance-avoidance) parameter.
+        value_threshold : int
+            The target value a witness must reach.
 
         Raises
         ------
         TypeError
-            `param_alpha`, `param_beta`, `param_gamma`, or `param_delta` are not float
-            `value_threshold` is not int
+            if any of `param_alpha`, `param_beta`, `param_gamma`, `param_delta` is not a `float`, or
+            `value_threshold` is not an `int`.
         ValueError
-            `param_alpha`, `param_beta`, `param_gamma`, or `param_delta` are not in valid range
-            `value_threshold` is negative
+            if any parameter is out of range, or `value_threshold` is negative.
 
         Returns
         -------
         percent_witness_found : float
-            the expected percentage of the time that a witness is successfully found
+            The expected probability that a witness is successfully found.
         """
 
         _validate_parameters_and_value_threshold(param_alpha, param_beta, param_gamma, param_delta, ProblemType.DECISION, value_threshold)

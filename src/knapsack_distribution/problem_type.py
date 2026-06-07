@@ -22,11 +22,17 @@ from enum import Enum, auto
 
 
 class ProblemType(Enum):
-    """ The types of Knapsack Problem.
+    """ The variant of Knapsack Problem to solve.
 
-    OPTIMISATION: Find the maximum net value of a feasible selection of items.
-    DECISION: Find any feasible selection of items, if it exists, to state (True or False) that a target
-    net value can be reached.
-    A feasible selection of items requires the net weight to be less than or equal to the capacity."""
+    A selection of items is *feasible* when its total weight does not exceed the capacity.
+
+    Attributes
+    ----------
+    OPTIMISATION
+        Find the maximum total value achievable by a feasible selection of items.
+    DECISION
+        Determine (`True`/`False`) whether some feasible selection reaches a target total value.
+        Such a satisfying selection is called a *witness*.
+    """
     OPTIMISATION = auto()
     DECISION = auto()

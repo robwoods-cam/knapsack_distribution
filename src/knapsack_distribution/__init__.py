@@ -24,7 +24,7 @@ import struct
 if struct.calcsize("P") * 8 != 64:
     raise EnvironmentError("This package requires a 64-bit Python interpreter.")
 
-# Enforce Python version (3.12+
+# Enforce Python version (3.12+)
 if sys.version_info < (3, 12):
     sys.exit("Python 3.12 or later is required.")
 
