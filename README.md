@@ -194,7 +194,7 @@ Terminal Nodes (*** for optimal):
 
 Total Distribution: 1.0
 
-Number of Terminal Nodes: 338
+Number of Terminal Nodes: 338 (unmerged: 338)
 ```
 
 More examples can be found in the examples folder.
