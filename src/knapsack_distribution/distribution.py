@@ -151,7 +151,7 @@ def _validate_parameters_and_value_threshold(param_alpha: float, param_beta: flo
         raise ValueError(f"`problem_type` expected to be `DECISION` or `OPTIMISATION`, is {problem_type}.")
 
 
-def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, problem_type: ProblemType = ProblemType.OPTIMISATION, value_threshold: int | None = None) -> dict[int, float]:
+def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, problem_type: ProblemType = ProblemType.OPTIMISATION, value_threshold: int | None = None, verbose: bool = False) -> dict[int, float]:
     """ Compute the probability distribution over the terminal nodes reachable from `knapsack_instance`.
 
     Returns, for each reachable terminal node, the probability (a fraction of 1) that a
@@ -180,6 +180,8 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
         Whether to search for an optimum (optimisation) or a witness (decision).
     value_threshold : int | None, default None
         The target value for a decision problem; must be `None` for an optimisation problem.
+    verbose : bool, default False
+        Prints each branch to a child with the probability and cause (optimal jump or item add)
 
     Raises
     ------
@@ -198,6 +200,9 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
     node_distribution : dict[int, float]
         Maps each reachable terminal node's `hash` to the probability of ending in that node.
     """
+
+    if verbose:
+        print("Log of child node creation (verbose = True)\n")
 
     distribution_by_hash: dict[int, dict[int, float]] = {}
     included_dominated_items_by_hash: dict[int, list[KnapsackItem]] = {}
@@ -287,7 +292,32 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
                         if hash(knapsack_item) in non_dominated_items:
                             node_distribution[knapsack_instance_hash] += percent_not_find_optimal * percent_remove_dominance * ((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma)))) / transformed_divisor_non_dominated * distribution
 
+                        # Only for verbose processing and printing the transitions
+                        if verbose:
+                            child_knapsack = KnapsackInstance.instance_by_hash[knapsack_instance_hash]
+                            if hash(knapsack_item) in non_dominated_items:
+                                distribution = percent_not_find_optimal * percent_not_remove_dominance * ((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma)))) / transformed_divisor_all * distribution + percent_not_find_optimal * percent_remove_dominance * ((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma)))) / transformed_divisor_non_dominated * distribution
+                            else:
+                                distribution = percent_not_find_optimal * percent_not_remove_dominance * ((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma)))) / transformed_divisor_all * distribution
+
+                            print(f"add item: {get_unmerged_item_inclusion_string(knapsack_instance.knapsack_items, knapsack_instance.master_knapsack.knapsack_items if knapsack_instance.master_knapsack else knapsack_instance.knapsack_items)} -> {get_unmerged_item_inclusion_string(child_knapsack.knapsack_items, child_knapsack.master_knapsack.knapsack_items)} = {distribution:.3f}")
+
             return node_distribution
+
+        # Only for verbose processing and printing the transitions
+        def get_unmerged_item_inclusion_string(terminal_node_knapsack_items: list[KnapsackItem], master_knapsack_items: list[KnapsackItem]) -> str:
+
+            item_inclusions = [True] * len(master_knapsack_items)
+
+            for terminal_node_item in terminal_node_knapsack_items:
+                for i in range(len(master_knapsack_items) - 1, -1, -1):
+                    if master_knapsack_items[i] is terminal_node_item and item_inclusions[i]:
+                        item_inclusions[i] = False
+                        break
+
+            item_inclusion_string = str([1 if item_included else 0 for item_included in item_inclusions])
+
+            return item_inclusion_string
 
         # If the distribution for the node with the given parameters already exists, return the node to prevent recalculation
         hash_string = str(param_beta)  + "," + str(param_alpha) + "," + str(param_gamma) + "," + str(param_delta) + "," + str(problem_type) + "," + str(hash(knapsack_instance))
@@ -331,6 +361,9 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
         # If this is a terminal node, there are no child nodes, so the distribution stops here.
         if knapsack_instance.is_terminal_node:
             node_distribution[hash(knapsack_instance)] = 1.0
+            # Only for verbose processing and printing the transitions
+            if verbose:
+                print(f"terminal node: {get_unmerged_item_inclusion_string(knapsack_instance.knapsack_items, knapsack_instance.master_knapsack.knapsack_items)} -> terminal = 1.0")
             return node_distribution
 
         # Brute force search for optimum / witness
@@ -338,6 +371,12 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
         # Depending on what problem type we need to search all terminal nodes and find the best (optimisation), or just find a terminal which meets a threshold (decision)
         if problem_type is ProblemType.OPTIMISATION:
             node_distribution = _search_for_optimum(node_distribution, param_delta, param_alpha)
+
+            # Only for verbose processing and printing the transitions
+            if verbose:
+                for knapsack_hash, distribution in node_distribution.items():
+                    child_knapsack = KnapsackInstance.instance_by_hash[knapsack_hash]
+                    print(f"optimal jump: {get_unmerged_item_inclusion_string(knapsack_instance.knapsack_items, knapsack_instance.master_knapsack.knapsack_items if knapsack_instance.master_knapsack else knapsack_instance.knapsack_items)} -> {get_unmerged_item_inclusion_string(child_knapsack.knapsack_items, child_knapsack.master_knapsack.knapsack_items)} = {distribution:.3f}")
 
         elif problem_type is ProblemType.DECISION:
             if value_threshold is None:
@@ -365,7 +404,12 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
 
         return distribution_by_hash[node_distribution_hash]  # is node_distribution
 
-    return _get_child_node_distribution(knapsack_instance, param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
+    child_node_distribution = _get_child_node_distribution(knapsack_instance, param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
+
+    if verbose:
+        print("\n-------------------------------------\n")
+
+    return child_node_distribution
 
 
 def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribution: dict[int, float], parameters: tuple[float, float, float, float] | None = None, print_threshold: float = 0.0001, show_unmerged_distribution: bool = False) -> None:
