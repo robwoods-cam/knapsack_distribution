@@ -1,6 +1,6 @@
 ## Knapsack Choice Distribution Tool
 
-A tool for calculating the _expected distribution_ of solutions for _any specified instance_ of the _Knapsack Problem_, as reached by a _single decision-maker_ or an _entire population_.
+A tool for calculating the _expected distribution_ of human-selected approximate solutions for _any specified instance_ of the _Knapsack Problem_, as reached by a _single decision-maker_ or an _entire population_.
 
 -----
 
@@ -8,7 +8,7 @@ A tool for calculating the _expected distribution_ of solutions for _any specifi
 
 This repository provides a Python implementation for modeling and analysing decision-making in instances of the **Knapsack Problem**. It uses a **cached tree-based approach** with dominance checks and probabilistic node distribution.
 
-This model may be the first measure to give a truly instance-specific metric of difficulty to the *NP-hard* knapsack problem, not relying on heuristics to calculate the “average” difficulty of similar instances. It is also the first to predict choice distributions when individuals fail to find the optimum.
+This model may be the first measure to give a truly instance-specific metric of difficulty to the *NP-hard* knapsack problem, not relying on heuristics to calculate the “average” difficulty of mechanically similar instances. It is also the first to predict choice distributions when individuals fail to find the optimum.
 
 The knapsack problem is a classic combinatorial optimisation problem where the goal is to maximise the total value of items placed in a knapsack without exceeding its weight capacity (or if a target can be reach by a set of items within the budget constraint).
 
@@ -25,14 +25,12 @@ $$
 \sum_{i \in I} x_i w_i \le C, \qquad x_i \in \{0,1\}
 $$
 
-Where $v_i$ and $w_i$ are, respectively, the value and weight associated with each
-item $i$ in a set of available items $I$.
-The variable $x_i$ is the binary decision variable that represents the choice to include
-item $i$ in the knapsack (if $x_i = 1$) or exclude it (if $x_i = 0$).
+Where $v_i$ and $w_i$ are, respectively, the value and weight associated with each item $i$ in a set of available items $I$.
+The variable $x_i$ is the binary decision variable that represents the choice to include item $i$ in the knapsack (if $x_i = 1$) or exclude it (if $x_i = 0$).
 $C$ is the capacity constraint of the knapsack.
 
 
-This tool takes a knapsack instance (featuring a set of items with values and weights, a capacity limit, and a target if the decision variant of the knapsack problem) and four individual parameters.
+This tool takes a knapsack instance (featuring a set of items with values and weights, a capacity limit, and a target if the decision variant of the knapsack problem) and four individual parameters which relate to the search of the solver.
 
 Given this, it will calculate the expected distribution of terminal nodes for the optimisation variant and the Boolean yes/no response to if the target is reachable, as well as the expected distribution of terminal witness nodes for the decision variant.
 
@@ -48,7 +46,6 @@ The module primarily consists of two immutable dataclasses:
 
       * Represents individual items with attributes: `value`, `weight`.
       * Unique item ID and hash for efficient comparisons.
-      * Dominance checks between items.
 
 2.  **`KnapsackInstance`**
 
@@ -95,10 +92,10 @@ Note: `KnapsackItem` and `KnapsackInstance` both use custom hashing functions. I
   - **Child Node**: A new node created by adding one item to the current knapsack.
   - **Master Node / Master Knapsack**: The founding node which created this knapsack problem.
   - **Terminal Node**: A node with no feasible child nodes (capacity exhausted or no items left).
-  - **Dominated Item**: An item that is strictly worse than another (higher weight and lower or equal value).
+  - **Dominated Item**: An item that is strictly worse than another (higher or equal weight and lower or equal value).
   - **Non-Dominated Item**: An item that is not dominated by any other in the current set.
   - **Dominated Child Node**: A node containing at least one dominated item which is added from this node onwards. Items already added are ignored.
-  - **Optimal Node**: The terminal node(s) with the highest total value which are possible from this node. There may be better terminal nodes from the master node, but they cannot be reached from this branch.
+  - **Optimal Node**: The terminal node(s) with the highest total value which are possible from this node. There may be better terminal nodes from the master node, but they cannot be reached from this branch (you would have to remove and replace items already added).
 
 -----
 
