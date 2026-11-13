@@ -407,13 +407,13 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
     return child_node_distribution
 
 
-def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribution: dict[int, float], parameters: tuple[float, float, float, float] | None = None, print_threshold: float = 0.0001, show_unmerged_distribution: bool = False, problem_type: ProblemType = ProblemType.OPTIMISATION) -> None:
+def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribution: dict[int, float], parameters: tuple[float, float, float, float] | None = None, print_threshold: float = 0.0001, show_unmerged_distribution: bool = False, problem_type: ProblemType = ProblemType.OPTIMISATION, value_threshold: int | None = None) -> None:
         """ Print the terminal-node distribution for a knapsack instance in a readable form.
 
         Each terminal node is shown as a binary (1 and 0) list of item inclusions, based on the order
         the items were supplied to the master node knapsack, together with its total value, total
-        weight against capacity, and probability (as a percentage of 1); optimal nodes are marked
-        with `***`. Only feasible (at or under capacity) terminal (no more items will fit in the
+        weight against capacity, and probability (as a percentage of 1); optimal nodes (or, for the
+        decision problem, witness nodes) are marked with `***`. Only feasible (at or under capacity) terminal (no more items will fit in the
         knapsack) nodes appear. By default, terminal nodes that differ only by which copy of a
         repeated identical item was included are merged.
 
@@ -437,13 +437,19 @@ def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribu
             repeated identical item was included.
         problem_type : ProblemType, default ProblemType.OPTIMISATION
             The problem variant the `distribution` was computed for, printed in the header.
+        value_threshold : int | None, default None
+            The target value for a decision problem, printed in the header and used to mark witness
+            nodes; must be `None` for an optimisation problem.
 
         Raises
         ------
         TypeError
-            if `distribution`, the print parameters, or `problem_type` have the wrong types.
+            if `distribution`, the print parameters, or `problem_type` have the wrong types, or if
+            `value_threshold` is not an `int` for a decision problem / not `None` for an
+            optimisation problem.
         ValueError
-            if `distribution` does not sum to 1, or a print parameter is out of range.
+            if `distribution` does not sum to 1, a print parameter is out of range, or
+            `value_threshold` is negative for a decision problem.
 
 
         Returns
@@ -529,17 +535,31 @@ def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribu
         validate_print_parameters(parameters, print_threshold)
         if not isinstance(problem_type, ProblemType):
             raise TypeError(f"`problem_type` must be of type `ProblemType`, but is {type(problem_type)}.")
+        if problem_type is ProblemType.DECISION:
+            if not isinstance(value_threshold, int) or isinstance(value_threshold, bool):
+                raise TypeError(f"`value_threshold` must be int for decision problem, is {type(value_threshold)}.")
+            if value_threshold < 0:
+                raise ValueError(f"`value_threshold` must be positive for decision problem, is {value_threshold}.")
+        elif value_threshold is not None:
+            raise TypeError(f"`value_threshold` must be None for optimisation problem, is {type(value_threshold)}.")
+
+        def is_marked(child_knapsack_instance: KnapsackInstance) -> bool:
+            """ Whether to mark a terminal node with `***`: a witness for the decision problem, otherwise an optimal node. """
+            if value_threshold is not None:
+                return child_knapsack_instance.standing_value >= value_threshold
+            return hash(child_knapsack_instance) in master_knapsack_instance.optimal_terminal_nodes
 
         print("Inputs\n")
         if parameters: print(f"Parameters: \u03b1 = {parameters[0]}, \u03B2 = {parameters[1]}, \u03b3 = {parameters[2]}, \u03B4 = {parameters[3]}\n")  # alpha (\u03b1), beta (\u03B2), gamma (\u03b3), delta (\u03B4)
         print(f"Knapsack Problem Variant: {problem_type.name.capitalize()}\n")
         print("Items: " + ", ".join([str(knapsack_item) for knapsack_item in master_knapsack_instance.knapsack_items]) + "\n")
         print(f"Budget: {master_knapsack_instance.knapsack_capacity}\n")
+        if value_threshold is not None: print(f"Target: {value_threshold}\n")
 
         print("-------------------------------------\n")
 
         print("Output\n")
-        print("Terminal Nodes (*** for optimal):")
+        print(f"Terminal Nodes (*** for {"witness" if value_threshold is not None else "optimal"}):")
 
         merged_distribution: dict[str, float] = {}
         item_inclusion_string_to_first_instance: dict[str, int] = {}
@@ -559,7 +579,7 @@ def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribu
 
                 child_knapsack_instance = KnapsackInstance.instance_by_hash[item_inclusion_string_to_first_instance[item_inclusion_string]]
 
-                print(f"{item_inclusion_string} - Σv: {child_knapsack_instance.standing_value}, Σw: {master_knapsack_instance.knapsack_capacity - child_knapsack_instance.knapsack_capacity} / {master_knapsack_instance.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{" ***" if hash(child_knapsack_instance) in master_knapsack_instance.optimal_terminal_nodes else ""}")
+                print(f"{item_inclusion_string} - Σv: {child_knapsack_instance.standing_value}, Σw: {master_knapsack_instance.knapsack_capacity - child_knapsack_instance.knapsack_capacity} / {master_knapsack_instance.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{" ***" if is_marked(child_knapsack_instance) else ""}")
 
 
         if show_unmerged_distribution:
@@ -570,7 +590,7 @@ def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribu
                     child_knapsack_instance = KnapsackInstance.instance_by_hash[knapsack_instance_hash]
                     item_inclusion_string = get_unmerged_item_inclusion_string(child_knapsack_instance.knapsack_items, master_knapsack_instance.knapsack_items)
 
-                    print(f"{item_inclusion_string} - Σv: {child_knapsack_instance.standing_value}, Σw: {master_knapsack_instance.knapsack_capacity - child_knapsack_instance.knapsack_capacity} / {master_knapsack_instance.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{" ***" if hash(child_knapsack_instance) in master_knapsack_instance.optimal_terminal_nodes else ""}")
+                    print(f"{item_inclusion_string} - Σv: {child_knapsack_instance.standing_value}, Σw: {master_knapsack_instance.knapsack_capacity - child_knapsack_instance.knapsack_capacity} / {master_knapsack_instance.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{" ***" if is_marked(child_knapsack_instance) else ""}")
 
         print(f"\nTotal Distribution: {sum(merged_distribution.values())}\n")
         print(f"Number of Terminal Nodes: {len(merged_distribution)} (unmerged: {len(distribution)})\n")
