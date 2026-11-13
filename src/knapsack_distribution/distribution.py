@@ -305,7 +305,7 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
             return node_distribution
 
         # Only for verbose processing and printing the transitions
-        def get_unmerged_item_inclusion_string(terminal_node_knapsack_items: list[KnapsackItem], master_knapsack_items: list[KnapsackItem]) -> str:
+        def get_unmerged_item_inclusion_string(terminal_node_knapsack_items: tuple[KnapsackItem, ...], master_knapsack_items: tuple[KnapsackItem, ...]) -> str:
 
             item_inclusions = [True] * len(master_knapsack_items)
 
@@ -363,7 +363,7 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
             node_distribution[hash(knapsack_instance)] = 1.0
             # Only for verbose processing and printing the transitions
             if verbose:
-                print(f"terminal node: {get_unmerged_item_inclusion_string(knapsack_instance.knapsack_items, knapsack_instance.master_knapsack.knapsack_items)} -> terminal = 1.0")
+                print(f"terminal node: {get_unmerged_item_inclusion_string(knapsack_instance.knapsack_items, knapsack_instance.master_knapsack.knapsack_items if knapsack_instance.master_knapsack else knapsack_instance.knapsack_items)} -> terminal = 1.0")
             return node_distribution
 
         # Brute force search for optimum / witness
@@ -447,8 +447,6 @@ def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribu
             if `distribution` or the print parameters have the wrong types.
         ValueError
             if `distribution` does not sum to 1, or a print parameter is out of range.
-        RuntimeError
-            if a node to be printed has no `master_knapsack`.
 
 
         Returns
@@ -561,10 +559,8 @@ def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribu
             if distribution_percentage >= print_threshold:
 
                 child_knapsack_instance = KnapsackInstance.instance_by_hash[item_inclusion_string_to_first_instance[item_inclusion_string]]
-                if child_knapsack_instance.master_knapsack is None:  # This is mainly for type hint errors
-                    raise RuntimeError("Cannot print for knapsack without master knapsack.")  # Note: This will crash if master knapsack has no items which will fit.
 
-                print(f"{item_inclusion_string} - Σv: {child_knapsack_instance.standing_value}, Σw: {child_knapsack_instance.master_knapsack.knapsack_capacity - child_knapsack_instance.knapsack_capacity} / {child_knapsack_instance.master_knapsack.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{" ***" if hash(child_knapsack_instance) in child_knapsack_instance.master_knapsack.optimal_terminal_nodes else ""}")
+                print(f"{item_inclusion_string} - Σv: {child_knapsack_instance.standing_value}, Σw: {master_knapsack_instance.knapsack_capacity - child_knapsack_instance.knapsack_capacity} / {master_knapsack_instance.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{" ***" if hash(child_knapsack_instance) in master_knapsack_instance.optimal_terminal_nodes else ""}")
 
 
         if show_unmerged_distribution:
@@ -575,10 +571,7 @@ def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribu
                     child_knapsack_instance = KnapsackInstance.instance_by_hash[knapsack_instance_hash]
                     item_inclusion_string = get_unmerged_item_inclusion_string(child_knapsack_instance.knapsack_items, master_knapsack_instance.knapsack_items)
 
-                    if child_knapsack_instance.master_knapsack is None:  # This is mainly for type hint errors
-                        raise RuntimeError("Cannot print for knapsack without master knapsack.")  # Note: This will crash if master knapsack has no items which will fit.
-
-                    print(f"{item_inclusion_string} - Σv: {child_knapsack_instance.standing_value}, Σw: {child_knapsack_instance.master_knapsack.knapsack_capacity - child_knapsack_instance.knapsack_capacity} / {child_knapsack_instance.master_knapsack.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{" ***" if hash(child_knapsack_instance) in child_knapsack_instance.master_knapsack.optimal_terminal_nodes else ""}")
+                    print(f"{item_inclusion_string} - Σv: {child_knapsack_instance.standing_value}, Σw: {master_knapsack_instance.knapsack_capacity - child_knapsack_instance.knapsack_capacity} / {master_knapsack_instance.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{" ***" if hash(child_knapsack_instance) in master_knapsack_instance.optimal_terminal_nodes else ""}")
 
         print(f"\nTotal Distribution: {sum(merged_distribution.values())}\n")
         print(f"Number of Terminal Nodes: {len(merged_distribution)} (unmerged: {len(distribution)})\n")

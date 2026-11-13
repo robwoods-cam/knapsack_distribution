@@ -56,11 +56,13 @@ class KnapsackInstance:
         `True` when there are no feasible `child_nodes` (no remaining item fits, or no items are
         left). A terminal node is a complete, capacity-constrained knapsack.
     terminal_nodes : frozenset[int]
-        The hashes of every terminal node reachable from this node. Hashes are stored rather than
-        instances because the custom `__hash__` makes instances unsafe as `set` members.
+        The hashes of every terminal node reachable from this node. A terminal node contains only
+        itself. Hashes are stored rather than instances because the custom `__hash__` makes
+        instances unsafe as `set` members.
     optimal_terminal_nodes : frozenset[int]
-        The hashes of the reachable terminal node(s) with the highest `standing_value`. There may be
-        higher-value terminal nodes under the master knapsack that are unreachable from this branch.
+        The hashes of the reachable terminal node(s) with the highest `standing_value`. A terminal
+        node contains only itself. There may be higher-value terminal nodes under the master
+        knapsack that are unreachable from this branch.
     _optimal_terminal_node_value : int
         The `standing_value` shared by the `optimal_terminal_nodes`.
 
@@ -235,7 +237,8 @@ class KnapsackInstance:
 
         object.__setattr__(self, "is_terminal_node", self.child_nodes is None)
 
-        terminal_nodes: set[int] = set()
+        # A terminal node is its own (only) terminal node
+        terminal_nodes: set[int] = set() if self.child_nodes else {hash(self)}
         if self.child_nodes:
             for _, child_node in self.child_nodes:
                 if child_node.is_terminal_node:
@@ -247,7 +250,8 @@ class KnapsackInstance:
         object.__setattr__(self, "_optimal_terminal_node_value", self.standing_value if not self.child_nodes
             else max(child_node._optimal_terminal_node_value for _, child_node in self.child_nodes))
 
-        optimal_terminal_nodes: set[int] = set()
+        # A terminal node is its own (only, so optimal) terminal node
+        optimal_terminal_nodes: set[int] = set() if self.child_nodes else {hash(self)}
         if self.child_nodes:
             for _, child_node in self.child_nodes:
                 if child_node._optimal_terminal_node_value == self._optimal_terminal_node_value:
