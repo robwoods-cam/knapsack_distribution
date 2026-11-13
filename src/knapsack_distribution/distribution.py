@@ -407,7 +407,7 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
     return child_node_distribution
 
 
-def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribution: dict[int, float], parameters: tuple[float, float, float, float] | None = None, print_threshold: float = 0.0001, show_unmerged_distribution: bool = False) -> None:
+def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribution: dict[int, float], parameters: tuple[float, float, float, float] | None = None, print_threshold: float = 0.0001, show_unmerged_distribution: bool = False, problem_type: ProblemType = ProblemType.OPTIMISATION) -> None:
         """ Print the terminal-node distribution for a knapsack instance in a readable form.
 
         Each terminal node is shown as a binary (1 and 0) list of item inclusions, based on the order
@@ -435,11 +435,13 @@ def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribu
         show_unmerged_distribution : bool, default False
             If `True`, additionally print the unmerged distribution, distinguishing which copy of a
             repeated identical item was included.
+        problem_type : ProblemType, default ProblemType.OPTIMISATION
+            The problem variant the `distribution` was computed for, printed in the header.
 
         Raises
         ------
         TypeError
-            if `distribution` or the print parameters have the wrong types.
+            if `distribution`, the print parameters, or `problem_type` have the wrong types.
         ValueError
             if `distribution` does not sum to 1, or a print parameter is out of range.
 
@@ -525,10 +527,12 @@ def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribu
 
         validate_distribution(distribution)
         validate_print_parameters(parameters, print_threshold)
+        if not isinstance(problem_type, ProblemType):
+            raise TypeError(f"`problem_type` must be of type `ProblemType`, but is {type(problem_type)}.")
 
         print("Inputs\n")
         if parameters: print(f"Parameters: \u03b1 = {parameters[0]}, \u03B2 = {parameters[1]}, \u03b3 = {parameters[2]}, \u03B4 = {parameters[3]}\n")  # alpha (\u03b1), beta (\u03B2), gamma (\u03b3), delta (\u03B4)
-        print("Knapsack Problem Variant: Optimisation\n")
+        print(f"Knapsack Problem Variant: {problem_type.name.capitalize()}\n")
         print("Items: " + ", ".join([str(knapsack_item) for knapsack_item in master_knapsack_instance.knapsack_items]) + "\n")
         print(f"Budget: {master_knapsack_instance.knapsack_capacity}\n")
 
