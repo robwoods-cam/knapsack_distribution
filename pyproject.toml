@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "knapsack_distribution"
-version = "2.0.2-alpha-1"
+version = "2.0.2-alpha-2"
 description = "A tool for calculating the expected distribution of solutions for any specified instance of the Knapsack Problem, as reached by a single decision-maker or an entire population."
 readme = "README.md"
 requires-python = ">=3.12"

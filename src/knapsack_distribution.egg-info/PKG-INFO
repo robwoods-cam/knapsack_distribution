@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: knapsack_distribution
-Version: 2.0.2a1
+Version: 2.0.2a2
 Summary: A tool for calculating the expected distribution of solutions for any specified instance of the Knapsack Problem, as reached by a single decision-maker or an entire population.
 Author-email: Robert Woods <rmw73@cam.ac.uk>, Robert Woods <robert.mark.woods@gmail.com>, Roman Berlanger <rb2057@cam.ac.uk>
 Maintainer-email: Robert Woods <rmw73@cam.ac.uk>, Robert Woods <robert.mark.woods@gmail.com>
