@@ -331,10 +331,15 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
         _validate_parameters_and_value_threshold(param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
         node_distribution: dict[int, float] = {}
 
+        # If this is a terminal node, there are no child nodes, so the distribution stops here.
+        if knapsack_instance.is_terminal_node:
+            node_distribution[hash(knapsack_instance)] = 1.0
+            # Only for verbose processing and printing the transitions
+            if verbose:
+                print(f"terminal node: {get_unmerged_item_inclusion_string(knapsack_instance.knapsack_items, knapsack_instance.master_knapsack.knapsack_items if knapsack_instance.master_knapsack else knapsack_instance.knapsack_items)} -> terminal = 1.0")
+            return node_distribution
 
-        # TODO calc:
-        # NOTE FIXME this may all need to happen before any distribution search happens, Im not sure.
-        # Maybe can just take the master node knapsack and do for all its terminal nodes, because I think it only matters for them
+        # Dominance from the perspective of this node (only needed when there are child nodes)
 
         # _non_dominated_items
         non_dominated_items: set[int] = set()
@@ -342,11 +347,9 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
             if not any(hash(knapsack_item_x) in knapsack_item_dominance_matrix[hash(knapsack_item)] for knapsack_item_x in knapsack_instance.knapsack_items[:i] + knapsack_instance.knapsack_items[i + 1:]):
                 non_dominated_items.add(hash(knapsack_item))
 
-        # TODO fix (if can) issue is this need to be done
-        # TODO this probably doesnt need to be redone
-        included_dominated_items: list[KnapsackItem] = [standing_knapsack_item for standing_knapsack_item in knapsack_instance.standing_knapsack_items if any(hash(knapsack_item_x) in knapsack_item_dominance_matrix[hash(standing_knapsack_item)] for knapsack_item_x in knapsack_instance.knapsack_items)]
-        included_dominated_items_hashes: list[int] = [hash(knapsack_item) for knapsack_item in included_dominated_items]
-        included_dominated_items_by_hash[hash(knapsack_instance)] = included_dominated_items
+        # The items already included which are dominated by an item still available. Only this node's are needed here,
+        # the terminal nodes' are precomputed in `included_dominated_items_by_hash` before the search starts.
+        included_dominated_items_hashes: set[int] = {hash(standing_knapsack_item) for standing_knapsack_item in knapsack_instance.standing_knapsack_items if any(hash(knapsack_item_x) in knapsack_item_dominance_matrix[hash(standing_knapsack_item)] for knapsack_item_x in knapsack_instance.knapsack_items)}
 
         # _non_dominated_terminal_nodes
         #     return [terminal_node for terminal_node in self._terminal_nodes if not KnapsackInstance.instance_by_hash[terminal_node]._is_dominated or all(terminal_included_dominated_item in self._included_dominated_items for terminal_included_dominated_item in KnapsackInstance.instance_by_hash[terminal_node]._included_dominated_items)]
@@ -357,14 +360,6 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
         #   return [terminal_node for terminal_node in self._optimal_terminal_nodes if not KnapsackInstance.instance_by_hash[terminal_node]._is_dominated or all(terminal_included_dominated_item in self._included_dominated_items for terminal_included_dominated_item in KnapsackInstance.instance_by_hash[terminal_node]._included_dominated_items)]
 
         non_dominated_optimal_terminal_nodes = [terminal_node for terminal_node in knapsack_instance.optimal_terminal_nodes if len(included_dominated_items_by_hash[terminal_node]) == 0 or all(hash(terminal_included_dominated_item) in included_dominated_items_hashes for terminal_included_dominated_item in included_dominated_items_by_hash[terminal_node])]
-
-        # If this is a terminal node, there are no child nodes, so the distribution stops here.
-        if knapsack_instance.is_terminal_node:
-            node_distribution[hash(knapsack_instance)] = 1.0
-            # Only for verbose processing and printing the transitions
-            if verbose:
-                print(f"terminal node: {get_unmerged_item_inclusion_string(knapsack_instance.knapsack_items, knapsack_instance.master_knapsack.knapsack_items if knapsack_instance.master_knapsack else knapsack_instance.knapsack_items)} -> terminal = 1.0")
-            return node_distribution
 
         # Brute force search for optimum / witness
 
