@@ -1,7 +1,8 @@
-import unittest
 import hashlib
+import unittest
 
-from src.knapsack_distribution import KnapsackItem, KnapsackInstance, __version__
+from src.knapsack_distribution import KnapsackInstance, KnapsackItem, __version__
+
 
 class TestModelVersion(unittest.TestCase):
 

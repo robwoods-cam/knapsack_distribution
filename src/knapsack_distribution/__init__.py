@@ -17,30 +17,33 @@ See the LICENSE file for full terms.
 """
 
 
-import sys
 import struct
+import sys
 
 # Enforce 64-bit interpreter for long hashes
 if struct.calcsize("P") * 8 != 64:
-    raise EnvironmentError("This package requires a 64-bit Python interpreter.")
+    raise OSError("This package requires a 64-bit Python interpreter.")
 
 # Enforce Python version (3.12+)
 if sys.version_info < (3, 12):
     sys.exit("Python 3.12 or later is required.")
 
 from ._version import __version__
-
-from .knapsack_item import KnapsackItem
+from .distribution import (
+    get_node_distribution,
+    print_node_distribution,
+    solve_decision_variant,
+)
 from .knapsack_instance import KnapsackInstance
+from .knapsack_item import KnapsackItem
 from .problem_type import ProblemType
-from .distribution import get_node_distribution, print_node_distribution, solve_decision_variant
 
 __all__ = [
-    "KnapsackItem",
     "KnapsackInstance",
+    "KnapsackItem",
     "ProblemType",
+    "__version__",
     "get_node_distribution",
     "print_node_distribution",
-    "solve_decision_variant",
-    "__version__"
+    "solve_decision_variant"
 ]

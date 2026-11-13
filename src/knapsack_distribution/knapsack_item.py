@@ -19,9 +19,10 @@ See the LICENSE file for full terms.
 
 
 from __future__ import annotations
+
+import hashlib
 from dataclasses import dataclass, field
 from typing import ClassVar
-import hashlib
 
 
 @dataclass(frozen=True, slots=True)

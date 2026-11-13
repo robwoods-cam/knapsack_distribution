@@ -1,4 +1,11 @@
-from knapsack_distribution import KnapsackItem, KnapsackInstance, ProblemType, get_node_distribution, print_node_distribution
+from knapsack_distribution import (
+    KnapsackInstance,
+    KnapsackItem,
+    ProblemType,
+    get_node_distribution,
+    print_node_distribution,
+)
+
 
 def main() -> None:
     # Define knapsack items

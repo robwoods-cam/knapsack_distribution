@@ -18,17 +18,18 @@ This program is free software under the GNU Affero General Public License v3.
 See the LICENSE file for full terms.
 """
 
-
 import hashlib
 import math
 
-from .knapsack_item import KnapsackItem
 from .knapsack_instance import KnapsackInstance
+from .knapsack_item import KnapsackItem
 from .problem_type import ProblemType
 
 
-def _get_knapsack_item_dominance_matrix(knapsack_items: list[KnapsackItem] | tuple[KnapsackItem, ...]) -> dict[int, set[int]]:
-    """ Build a dominance matrix over `knapsack_items`.
+def _get_knapsack_item_dominance_matrix(
+    knapsack_items: list[KnapsackItem] | tuple[KnapsackItem, ...],
+) -> dict[int, set[int]]:
+    """Build a dominance matrix over `knapsack_items`.
 
     An item *dominates* another when it is at least as valuable and no heavier, with at least one of
     those comparisons strict. Two items with identical `value` and `weight` are broken apart by
@@ -58,10 +59,17 @@ def _get_knapsack_item_dominance_matrix(knapsack_items: list[KnapsackItem] | tup
 
     knapsack_item_dominance_matrix: dict[int, set[int]] = {}
 
-    if not (isinstance(knapsack_items, list | tuple) and all(isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items)):
+    if not (
+        isinstance(knapsack_items, list | tuple)
+        and all(
+            isinstance(knapsack_item, KnapsackItem) for knapsack_item in knapsack_items
+        )
+    ):
         raise TypeError("knapsack_items must be a list of `KnapsackItem`")
 
-    if len(knapsack_items) != len(set([hash(knapsack_item) for knapsack_item in knapsack_items])):
+    if len(knapsack_items) != len(
+        set([hash(knapsack_item) for knapsack_item in knapsack_items])
+    ):
         raise ValueError("Repeated `KnapsackItem` cannot be set in dominance matrix.")
 
     for knapsack_item_1 in knapsack_items:
@@ -69,14 +77,37 @@ def _get_knapsack_item_dominance_matrix(knapsack_items: list[KnapsackItem] | tup
 
         for knapsack_item_2 in knapsack_items:
             if hash(knapsack_item_1) != hash(knapsack_item_2):
-                if (knapsack_item_2.value > knapsack_item_1.value and knapsack_item_2.weight <= knapsack_item_1.weight) or (knapsack_item_2.value >= knapsack_item_1.value and knapsack_item_2.weight < knapsack_item_1.weight) or (knapsack_item_2 == knapsack_item_1 and knapsack_item_2.knapsack_item_id < knapsack_item_1.knapsack_item_id):
-                    knapsack_item_dominance_matrix[hash(knapsack_item_1)].add(hash(knapsack_item_2))
+                if (
+                    (
+                        knapsack_item_2.value > knapsack_item_1.value
+                        and knapsack_item_2.weight <= knapsack_item_1.weight
+                    )
+                    or (
+                        knapsack_item_2.value >= knapsack_item_1.value
+                        and knapsack_item_2.weight < knapsack_item_1.weight
+                    )
+                    or (
+                        knapsack_item_2 == knapsack_item_1
+                        and knapsack_item_2.knapsack_item_id
+                        < knapsack_item_1.knapsack_item_id
+                    )
+                ):
+                    knapsack_item_dominance_matrix[hash(knapsack_item_1)].add(
+                        hash(knapsack_item_2)
+                    )
 
     return knapsack_item_dominance_matrix
 
 
-def _validate_parameters_and_value_threshold(param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, problem_type: ProblemType, value_threshold: int | None) -> None:
-    """ Validate the four behavioural parameters and `value_threshold` for the given problem type.
+def _validate_parameters_and_value_threshold(
+    param_alpha: float,
+    param_beta: float,
+    param_gamma: float,
+    param_delta: float,
+    problem_type: ProblemType,
+    value_threshold: int | None,
+) -> None:
+    """Validate the four behavioural parameters and `value_threshold` for the given problem type.
 
     Parameters
     ----------
@@ -111,48 +142,85 @@ def _validate_parameters_and_value_threshold(param_alpha: float, param_beta: flo
     """
 
     if not isinstance(param_beta, float):
-        raise TypeError(f"`param_beta` must be of type float, but is {type(param_beta)}.")
+        raise TypeError(
+            f"`param_beta` must be of type float, but is {type(param_beta)}."
+        )
     if not 0.0 <= param_beta < 1.0:
-        raise ValueError(f"`param_beta` be greater than or equal to 0.0 and less than 1.0, but is {param_beta}.")
+        raise ValueError(
+            f"`param_beta` be greater than or equal to 0.0 and less than 1.0, but is {param_beta}."
+        )
 
     if not isinstance(param_gamma, float):
-        raise TypeError(f"`param_gamma` must be of type float, but is {type(param_gamma)}.")
+        raise TypeError(
+            f"`param_gamma` must be of type float, but is {type(param_gamma)}."
+        )
     if not 0.0 <= param_gamma < 1.0:
-        raise ValueError(f"`param_gamma` be greater than or equal to 0.0 and less than 1.0, but is {param_gamma}.")
+        raise ValueError(
+            f"`param_gamma` be greater than or equal to 0.0 and less than 1.0, but is {param_gamma}."
+        )
 
     if not isinstance(param_delta, float):
-        raise TypeError(f"`param_delta` must be of type float, but is {type(param_delta)}.")
+        raise TypeError(
+            f"`param_delta` must be of type float, but is {type(param_delta)}."
+        )
     if not 0.0 <= param_delta <= 1.0:
-        raise ValueError(f"`param_delta` be greater than or equal to 0.0 and less than or equal to 1.0, but is {param_delta}.")
+        raise ValueError(
+            f"`param_delta` be greater than or equal to 0.0 and less than or equal to 1.0, but is {param_delta}."
+        )
 
     if not isinstance(param_alpha, float):
-        raise TypeError(f"`param_alpha` must be of type float, but is {type(param_alpha)}.")
+        raise TypeError(
+            f"`param_alpha` must be of type float, but is {type(param_alpha)}."
+        )
 
     if not isinstance(problem_type, ProblemType):
-        raise TypeError(f"`problem_type` must be of type `ProblemType`, but is {type(problem_type)}.")
+        raise TypeError(
+            f"`problem_type` must be of type `ProblemType`, but is {type(problem_type)}."
+        )
 
     if problem_type is ProblemType.DECISION:
         if not 0.0 <= param_alpha <= 1.0:
-            raise ValueError(f"`param_alpha` be greater than or equal to 0.0 and less than or equal to 1.0 for the decision problem, but is {param_alpha}.")
+            raise ValueError(
+                f"`param_alpha` be greater than or equal to 0.0 and less than or equal to 1.0 for the decision problem, but is {param_alpha}."
+            )
 
         if not isinstance(value_threshold, int) or isinstance(value_threshold, bool):
-            raise TypeError(f"`value_threshold` must be int for decision problem, is {type(value_threshold)}.")
+            raise TypeError(
+                f"`value_threshold` must be int for decision problem, is {type(value_threshold)}."
+            )
         if value_threshold < 0:
-            raise ValueError(f"`value_threshold` must be positive for decision problem, is {value_threshold}.")
+            raise ValueError(
+                f"`value_threshold` must be positive for decision problem, is {value_threshold}."
+            )
 
     elif problem_type is ProblemType.OPTIMISATION:
         if not 0.0 < param_alpha <= 1.0:
-            raise ValueError(f"`param_alpha` be greater than 0.0 and less than or equal to 1.0 for the optimisation problem, but is {param_alpha}.")
+            raise ValueError(
+                f"`param_alpha` be greater than 0.0 and less than or equal to 1.0 for the optimisation problem, but is {param_alpha}."
+            )
 
         if value_threshold is not None:
-            raise TypeError(f"`value_threshold` must be None for optimisation problem, is {type(value_threshold)}.")
+            raise TypeError(
+                f"`value_threshold` must be None for optimisation problem, is {type(value_threshold)}."
+            )
 
     else:
-        raise ValueError(f"`problem_type` expected to be `DECISION` or `OPTIMISATION`, is {problem_type}.")
+        raise ValueError(
+            f"`problem_type` expected to be `DECISION` or `OPTIMISATION`, is {problem_type}."
+        )
 
 
-def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, problem_type: ProblemType = ProblemType.OPTIMISATION, value_threshold: int | None = None, verbose: bool = False) -> dict[int, float]:
-    """ Compute the probability distribution over the terminal nodes reachable from `knapsack_instance`.
+def get_node_distribution(
+    knapsack_instance: KnapsackInstance,
+    param_alpha: float,
+    param_beta: float,
+    param_gamma: float,
+    param_delta: float,
+    problem_type: ProblemType = ProblemType.OPTIMISATION,
+    value_threshold: int | None = None,
+    verbose: bool = False,
+) -> dict[int, float]:
+    """Compute the probability distribution over the terminal nodes reachable from `knapsack_instance`.
 
     Returns, for each reachable terminal node, the probability (a fraction of 1) that a
     decision-maker with the given behavioural parameters ends in that node. Only feasible (at or
@@ -206,34 +274,77 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
 
     distribution_by_hash: dict[int, dict[int, float]] = {}
     included_dominated_items_by_hash: dict[int, list[KnapsackItem]] = {}
-    knapsack_item_dominance_matrix: dict[int, set[int]] = _get_knapsack_item_dominance_matrix(knapsack_instance.knapsack_items)
+    knapsack_item_dominance_matrix: dict[int, set[int]] = (
+        _get_knapsack_item_dominance_matrix(knapsack_instance.knapsack_items)
+    )
 
     for terminal_node in knapsack_instance.terminal_nodes:
-        included_dominated_items: list[KnapsackItem] = [standing_knapsack_item for standing_knapsack_item in KnapsackInstance.instance_by_hash[terminal_node].standing_knapsack_items if any(hash(knapsack_item_x) in knapsack_item_dominance_matrix[hash(standing_knapsack_item)] for knapsack_item_x in KnapsackInstance.instance_by_hash[terminal_node].knapsack_items)]
+        included_dominated_items: list[KnapsackItem] = [
+            standing_knapsack_item
+            for standing_knapsack_item in KnapsackInstance.instance_by_hash[
+                terminal_node
+            ].standing_knapsack_items
+            if any(
+                hash(knapsack_item_x)
+                in knapsack_item_dominance_matrix[hash(standing_knapsack_item)]
+                for knapsack_item_x in KnapsackInstance.instance_by_hash[
+                    terminal_node
+                ].knapsack_items
+            )
+        ]
         included_dominated_items_by_hash[terminal_node] = included_dominated_items
 
-    def _get_child_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, problem_type: ProblemType = ProblemType.OPTIMISATION, value_threshold: int | None = None) -> dict[int, float]:
-        def _search_for_optimum(node_distribution: dict[int, float], param_delta: float, param_alpha: float) -> dict[int, float]:
-            """ Return the distribution of optimal terminal nodes reached in the search.
+    def _get_child_node_distribution(
+        knapsack_instance: KnapsackInstance,
+        param_alpha: float,
+        param_beta: float,
+        param_gamma: float,
+        param_delta: float,
+        problem_type: ProblemType = ProblemType.OPTIMISATION,
+        value_threshold: int | None = None,
+    ) -> dict[int, float]:
+        def _search_for_optimum(
+            node_distribution: dict[int, float], param_delta: float, param_alpha: float
+        ) -> dict[int, float]:
+            """Return the distribution of optimal terminal nodes reached in the search.
 
             The search for the optimum is hard, it requires 'remembering' all possible terminal nodes.
             When there are multiple optimal terminal nodes, an individual is indifferent between the nodes, so they are selected
             with equal probability.
             """
 
-            percent_find_optimal_full_set = ((1 - param_delta) * math.exp((1 - len(knapsack_instance.terminal_nodes)) * ((1 - param_alpha) / param_alpha)))
-            percent_find_optimal_non_dominated = (param_delta * math.exp((1 - len(non_dominated_terminal_nodes)) * ((1 - param_alpha) / param_alpha)))
+            percent_find_optimal_full_set = (1 - param_delta) * math.exp(
+                (1 - len(knapsack_instance.terminal_nodes))
+                * ((1 - param_alpha) / param_alpha)
+            )
+            percent_find_optimal_non_dominated = param_delta * math.exp(
+                (1 - len(non_dominated_terminal_nodes))
+                * ((1 - param_alpha) / param_alpha)
+            )
 
             for optimal_terminal_node in knapsack_instance.optimal_terminal_nodes:
-                node_distribution[optimal_terminal_node] = percent_find_optimal_full_set / len(knapsack_instance.optimal_terminal_nodes)
+                node_distribution[optimal_terminal_node] = (
+                    percent_find_optimal_full_set
+                    / len(knapsack_instance.optimal_terminal_nodes)
+                )
 
-            for optimal_non_dominated_terminal_node in non_dominated_optimal_terminal_nodes:
-                node_distribution[optimal_non_dominated_terminal_node] += percent_find_optimal_non_dominated / len(non_dominated_optimal_terminal_nodes)
+            for (
+                optimal_non_dominated_terminal_node
+            ) in non_dominated_optimal_terminal_nodes:
+                node_distribution[optimal_non_dominated_terminal_node] += (
+                    percent_find_optimal_non_dominated
+                    / len(non_dominated_optimal_terminal_nodes)
+                )
 
             return node_distribution
 
-        def _search_for_witness(node_distribution: dict[int, float], value_threshold: int, param_delta: float, param_alpha: float) -> dict[int, float]:
-            """ Return the distribution of witness nodes reached in the search.
+        def _search_for_witness(
+            node_distribution: dict[int, float],
+            value_threshold: int,
+            param_delta: float,
+            param_alpha: float,
+        ) -> dict[int, float]:
+            """Return the distribution of witness nodes reached in the search.
 
             The search for a witness is easier than for an optimum, as any witness found along the way is sufficient. You do not
             need to remember and compare all possible terminal nodes.
@@ -243,10 +354,44 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
             of running into the given terminal node in the search by adding 'random' items.
             """
 
-            distribution_search_delta_0 = _get_child_node_distribution(knapsack_instance, 0.0, 0.0, 0.0, 0.0, ProblemType.DECISION, value_threshold)
-            distribution_search_delta_1 = _get_child_node_distribution(knapsack_instance, 0.0, 0.0, 0.0, 1.0, ProblemType.DECISION, value_threshold)
-            percent_witness_found_delta_0 = sum([distribution_percentage for knapsack_instance_hash, distribution_percentage in distribution_search_delta_0.items() if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value >= value_threshold])
-            percent_witness_found_delta_1 = sum([distribution_percentage for knapsack_instance_hash, distribution_percentage in distribution_search_delta_1.items() if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value >= value_threshold])
+            distribution_search_delta_0 = _get_child_node_distribution(
+                knapsack_instance,
+                0.0,
+                0.0,
+                0.0,
+                0.0,
+                ProblemType.DECISION,
+                value_threshold,
+            )
+            distribution_search_delta_1 = _get_child_node_distribution(
+                knapsack_instance,
+                0.0,
+                0.0,
+                0.0,
+                1.0,
+                ProblemType.DECISION,
+                value_threshold,
+            )
+            percent_witness_found_delta_0 = sum(
+                [
+                    distribution_percentage
+                    for knapsack_instance_hash, distribution_percentage in distribution_search_delta_0.items()
+                    if KnapsackInstance.instance_by_hash[
+                        knapsack_instance_hash
+                    ].standing_value
+                    >= value_threshold
+                ]
+            )
+            percent_witness_found_delta_1 = sum(
+                [
+                    distribution_percentage
+                    for knapsack_instance_hash, distribution_percentage in distribution_search_delta_1.items()
+                    if KnapsackInstance.instance_by_hash[
+                        knapsack_instance_hash
+                    ].standing_value
+                    >= value_threshold
+                ]
+            )
 
             # If to use true 'deltas', rather than a delta weighted average between delta-0 and delta-1
             # distribution_search_delta_delta = self._get_child_node_distribution(0.0, 0.0, 0.0, param_delta, ProblemType.DECISION, value_threshold)
@@ -254,81 +399,240 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
             # percent_witness_found_delta_0 = percent_witness_found
             # percent_witness_found_delta_1 = percent_witness_found
 
-            percent_find_optimal_full_set = ((1 - param_delta) * (percent_witness_found_delta_0 ** ((1 - param_alpha) / param_alpha)))
-            percent_find_optimal_non_dominated = (param_delta * (percent_witness_found_delta_1 ** ((1 - param_alpha) / param_alpha)))
+            percent_find_optimal_full_set = (1 - param_delta) * (
+                percent_witness_found_delta_0 ** ((1 - param_alpha) / param_alpha)
+            )
+            percent_find_optimal_non_dominated = param_delta * (
+                percent_witness_found_delta_1 ** ((1 - param_alpha) / param_alpha)
+            )
 
-            for knapsack_instance_hash, distribution_percentage in distribution_search_delta_0.items():
-                if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value >= value_threshold:
-                    node_distribution[knapsack_instance_hash] = percent_find_optimal_full_set * (distribution_percentage / percent_witness_found_delta_0)
+            for (
+                knapsack_instance_hash,
+                distribution_percentage,
+            ) in distribution_search_delta_0.items():
+                if (
+                    KnapsackInstance.instance_by_hash[
+                        knapsack_instance_hash
+                    ].standing_value
+                    >= value_threshold
+                ):
+                    node_distribution[knapsack_instance_hash] = (
+                        percent_find_optimal_full_set
+                        * (distribution_percentage / percent_witness_found_delta_0)
+                    )
 
-            for knapsack_instance_hash, distribution_percentage in distribution_search_delta_1.items():
-                if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value >= value_threshold:
-                    node_distribution[knapsack_instance_hash] += percent_find_optimal_non_dominated * (distribution_percentage / percent_witness_found_delta_1)
+            for (
+                knapsack_instance_hash,
+                distribution_percentage,
+            ) in distribution_search_delta_1.items():
+                if (
+                    KnapsackInstance.instance_by_hash[
+                        knapsack_instance_hash
+                    ].standing_value
+                    >= value_threshold
+                ):
+                    node_distribution[knapsack_instance_hash] += (
+                        percent_find_optimal_non_dominated
+                        * (distribution_percentage / percent_witness_found_delta_1)
+                    )
 
             return node_distribution
 
-        def _add_item_and_continue_search(node_distribution: dict[int, float], param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, problem_type: ProblemType, value_threshold: int | None) -> dict[int, float]:
-            """ Return the node_distribution of subnodes based on adding an item to the knapsack and continuing the search.
+        def _add_item_and_continue_search(
+            node_distribution: dict[int, float],
+            param_alpha: float,
+            param_beta: float,
+            param_gamma: float,
+            param_delta: float,
+            problem_type: ProblemType,
+            value_threshold: int | None,
+        ) -> dict[int, float]:
+            """Return the node_distribution of subnodes based on adding an item to the knapsack and continuing the search.
 
             The item added is probabilistic, based on the individual's alpha, beta, gamma, and delta.
             """
 
             if knapsack_instance.child_nodes:
-
                 percent_remove_dominance = param_delta
                 percent_not_remove_dominance = 1.0 - param_delta
 
-                transformed_divisor_all = sum((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma))) for knapsack_item, _ in knapsack_instance.child_nodes)
-                transformed_divisor_non_dominated = sum((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma))) if hash(knapsack_item) in non_dominated_items else 0.0 for knapsack_item, _ in knapsack_instance.child_nodes)
+                transformed_divisor_all = sum(
+                    (knapsack_item.density ** (param_beta / (1.0 - param_beta)))
+                    * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma)))
+                    for knapsack_item, _ in knapsack_instance.child_nodes
+                )
+                transformed_divisor_non_dominated = sum(
+                    (knapsack_item.density ** (param_beta / (1.0 - param_beta)))
+                    * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma)))
+                    if hash(knapsack_item) in non_dominated_items
+                    else 0.0
+                    for knapsack_item, _ in knapsack_instance.child_nodes
+                )
 
                 for knapsack_item, child_node in knapsack_instance.child_nodes:
-                    child_distribution = _get_child_node_distribution(child_node, param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
-                    for knapsack_instance_hash, distribution in child_distribution.items():
+                    child_distribution = _get_child_node_distribution(
+                        child_node,
+                        param_alpha,
+                        param_beta,
+                        param_gamma,
+                        param_delta,
+                        problem_type,
+                        value_threshold,
+                    )
+                    for (
+                        knapsack_instance_hash,
+                        distribution,
+                    ) in child_distribution.items():
                         if knapsack_instance_hash not in node_distribution:
                             node_distribution[knapsack_instance_hash] = 0.0
-                        node_distribution[knapsack_instance_hash] += percent_not_find_optimal * percent_not_remove_dominance * ((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma)))) / transformed_divisor_all * distribution
+                        node_distribution[knapsack_instance_hash] += (
+                            percent_not_find_optimal
+                            * percent_not_remove_dominance
+                            * (
+                                (
+                                    knapsack_item.density
+                                    ** (param_beta / (1.0 - param_beta))
+                                )
+                                * (
+                                    knapsack_item.weight
+                                    ** (param_gamma / (1.0 - param_gamma))
+                                )
+                            )
+                            / transformed_divisor_all
+                            * distribution
+                        )
 
                         # Add the additional weights for non-dominate items
                         if hash(knapsack_item) in non_dominated_items:
-                            node_distribution[knapsack_instance_hash] += percent_not_find_optimal * percent_remove_dominance * ((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma)))) / transformed_divisor_non_dominated * distribution
+                            node_distribution[knapsack_instance_hash] += (
+                                percent_not_find_optimal
+                                * percent_remove_dominance
+                                * (
+                                    (
+                                        knapsack_item.density
+                                        ** (param_beta / (1.0 - param_beta))
+                                    )
+                                    * (
+                                        knapsack_item.weight
+                                        ** (param_gamma / (1.0 - param_gamma))
+                                    )
+                                )
+                                / transformed_divisor_non_dominated
+                                * distribution
+                            )
 
                         # Only for verbose processing and printing the transitions
                         if verbose:
-                            child_knapsack = KnapsackInstance.instance_by_hash[knapsack_instance_hash]
+                            child_knapsack = KnapsackInstance.instance_by_hash[
+                                knapsack_instance_hash
+                            ]
                             if hash(knapsack_item) in non_dominated_items:
-                                distribution = percent_not_find_optimal * percent_not_remove_dominance * ((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma)))) / transformed_divisor_all * distribution + percent_not_find_optimal * percent_remove_dominance * ((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma)))) / transformed_divisor_non_dominated * distribution
+                                distribution = (
+                                    percent_not_find_optimal
+                                    * percent_not_remove_dominance
+                                    * (
+                                        (
+                                            knapsack_item.density
+                                            ** (param_beta / (1.0 - param_beta))
+                                        )
+                                        * (
+                                            knapsack_item.weight
+                                            ** (param_gamma / (1.0 - param_gamma))
+                                        )
+                                    )
+                                    / transformed_divisor_all
+                                    * distribution
+                                    + percent_not_find_optimal
+                                    * percent_remove_dominance
+                                    * (
+                                        (
+                                            knapsack_item.density
+                                            ** (param_beta / (1.0 - param_beta))
+                                        )
+                                        * (
+                                            knapsack_item.weight
+                                            ** (param_gamma / (1.0 - param_gamma))
+                                        )
+                                    )
+                                    / transformed_divisor_non_dominated
+                                    * distribution
+                                )
                             else:
-                                distribution = percent_not_find_optimal * percent_not_remove_dominance * ((knapsack_item.density ** (param_beta / (1.0 - param_beta))) * (knapsack_item.weight ** (param_gamma / (1.0 - param_gamma)))) / transformed_divisor_all * distribution
+                                distribution = (
+                                    percent_not_find_optimal
+                                    * percent_not_remove_dominance
+                                    * (
+                                        (
+                                            knapsack_item.density
+                                            ** (param_beta / (1.0 - param_beta))
+                                        )
+                                        * (
+                                            knapsack_item.weight
+                                            ** (param_gamma / (1.0 - param_gamma))
+                                        )
+                                    )
+                                    / transformed_divisor_all
+                                    * distribution
+                                )
 
-                            print(f"add item: {get_unmerged_item_inclusion_string(knapsack_instance.knapsack_items, knapsack_instance.master_knapsack.knapsack_items if knapsack_instance.master_knapsack else knapsack_instance.knapsack_items)} -> {get_unmerged_item_inclusion_string(child_knapsack.knapsack_items, child_knapsack.master_knapsack.knapsack_items)} = {distribution:.3f}")
+                            print(
+                                f"add item: {get_unmerged_item_inclusion_string(knapsack_instance.knapsack_items, knapsack_instance.master_knapsack.knapsack_items if knapsack_instance.master_knapsack else knapsack_instance.knapsack_items)} -> {get_unmerged_item_inclusion_string(child_knapsack.knapsack_items, child_knapsack.master_knapsack.knapsack_items)} = {distribution:.3f}"
+                            )
 
             return node_distribution
 
         # Only for verbose processing and printing the transitions
-        def get_unmerged_item_inclusion_string(terminal_node_knapsack_items: tuple[KnapsackItem, ...], master_knapsack_items: tuple[KnapsackItem, ...]) -> str:
+        def get_unmerged_item_inclusion_string(
+            terminal_node_knapsack_items: tuple[KnapsackItem, ...],
+            master_knapsack_items: tuple[KnapsackItem, ...],
+        ) -> str:
 
             item_inclusions = [True] * len(master_knapsack_items)
 
             for terminal_node_item in terminal_node_knapsack_items:
                 for i in range(len(master_knapsack_items) - 1, -1, -1):
-                    if master_knapsack_items[i] is terminal_node_item and item_inclusions[i]:
+                    if (
+                        master_knapsack_items[i] is terminal_node_item
+                        and item_inclusions[i]
+                    ):
                         item_inclusions[i] = False
                         break
 
-            item_inclusion_string = str([1 if item_included else 0 for item_included in item_inclusions])
+            item_inclusion_string = str(
+                [1 if item_included else 0 for item_included in item_inclusions]
+            )
 
             return item_inclusion_string
 
         # If the distribution for the node with the given parameters already exists, return the node to prevent recalculation
-        hash_string = str(param_beta)  + "," + str(param_alpha) + "," + str(param_gamma) + "," + str(param_delta) + "," + str(problem_type) + "," + str(hash(knapsack_instance))
+        hash_string = (
+            str(param_beta)
+            + ","
+            + str(param_alpha)
+            + ","
+            + str(param_gamma)
+            + ","
+            + str(param_delta)
+            + ","
+            + str(problem_type)
+            + ","
+            + str(hash(knapsack_instance))
+        )
         full_hash = hashlib.sha256(hash_string.encode("utf-8")).digest()
-        node_distribution_hash = int.from_bytes(full_hash[:7], 'big')
+        node_distribution_hash = int.from_bytes(full_hash[:7], "big")
 
         if node_distribution_hash in distribution_by_hash:
             return distribution_by_hash[node_distribution_hash]
 
         # Otherwise, validate the parameters and calculate the node distribution
-        _validate_parameters_and_value_threshold(param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
+        _validate_parameters_and_value_threshold(
+            param_alpha,
+            param_beta,
+            param_gamma,
+            param_delta,
+            problem_type,
+            value_threshold,
+        )
         node_distribution: dict[int, float] = {}
 
         # If this is a terminal node, there are no child nodes, so the distribution stops here.
@@ -336,7 +640,9 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
             node_distribution[hash(knapsack_instance)] = 1.0
             # Only for verbose processing and printing the transitions
             if verbose:
-                print(f"terminal node: {get_unmerged_item_inclusion_string(knapsack_instance.knapsack_items, knapsack_instance.master_knapsack.knapsack_items if knapsack_instance.master_knapsack else knapsack_instance.knapsack_items)} -> terminal = 1.0")
+                print(
+                    f"terminal node: {get_unmerged_item_inclusion_string(knapsack_instance.knapsack_items, knapsack_instance.master_knapsack.knapsack_items if knapsack_instance.master_knapsack else knapsack_instance.knapsack_items)} -> terminal = 1.0"
+                )
             return node_distribution
 
         # Dominance from the perspective of this node (only needed when there are child nodes)
@@ -344,29 +650,68 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
         # _non_dominated_items
         non_dominated_items: set[int] = set()
         for i, knapsack_item in enumerate(knapsack_instance.knapsack_items):
-            if not any(hash(knapsack_item_x) in knapsack_item_dominance_matrix[hash(knapsack_item)] for knapsack_item_x in knapsack_instance.knapsack_items[:i] + knapsack_instance.knapsack_items[i + 1:]):
+            if not any(
+                hash(knapsack_item_x)
+                in knapsack_item_dominance_matrix[hash(knapsack_item)]
+                for knapsack_item_x in knapsack_instance.knapsack_items[:i]
+                + knapsack_instance.knapsack_items[i + 1 :]
+            ):
                 non_dominated_items.add(hash(knapsack_item))
 
         # The items already included which are dominated by an item still available. Only this node's are needed here,
         # the terminal nodes' are precomputed in `included_dominated_items_by_hash` before the search starts.
-        included_dominated_items_hashes: set[int] = {hash(standing_knapsack_item) for standing_knapsack_item in knapsack_instance.standing_knapsack_items if any(hash(knapsack_item_x) in knapsack_item_dominance_matrix[hash(standing_knapsack_item)] for knapsack_item_x in knapsack_instance.knapsack_items)}
+        included_dominated_items_hashes: set[int] = {
+            hash(standing_knapsack_item)
+            for standing_knapsack_item in knapsack_instance.standing_knapsack_items
+            if any(
+                hash(knapsack_item_x)
+                in knapsack_item_dominance_matrix[hash(standing_knapsack_item)]
+                for knapsack_item_x in knapsack_instance.knapsack_items
+            )
+        }
 
         # The (optimal) terminal nodes reachable without adding a dominated item from this node onwards (dominated items
         # already included to reach this node are ignored)
-        non_dominated_terminal_nodes = [terminal_node for terminal_node in knapsack_instance.terminal_nodes if len(included_dominated_items_by_hash[terminal_node]) == 0 or all(hash(terminal_included_dominated_item) in included_dominated_items_hashes for terminal_included_dominated_item in included_dominated_items_by_hash[terminal_node])]
-        non_dominated_optimal_terminal_nodes = [terminal_node for terminal_node in knapsack_instance.optimal_terminal_nodes if len(included_dominated_items_by_hash[terminal_node]) == 0 or all(hash(terminal_included_dominated_item) in included_dominated_items_hashes for terminal_included_dominated_item in included_dominated_items_by_hash[terminal_node])]
+        non_dominated_terminal_nodes = [
+            terminal_node
+            for terminal_node in knapsack_instance.terminal_nodes
+            if len(included_dominated_items_by_hash[terminal_node]) == 0
+            or all(
+                hash(terminal_included_dominated_item)
+                in included_dominated_items_hashes
+                for terminal_included_dominated_item in included_dominated_items_by_hash[
+                    terminal_node
+                ]
+            )
+        ]
+        non_dominated_optimal_terminal_nodes = [
+            terminal_node
+            for terminal_node in knapsack_instance.optimal_terminal_nodes
+            if len(included_dominated_items_by_hash[terminal_node]) == 0
+            or all(
+                hash(terminal_included_dominated_item)
+                in included_dominated_items_hashes
+                for terminal_included_dominated_item in included_dominated_items_by_hash[
+                    terminal_node
+                ]
+            )
+        ]
 
         # Brute force search for optimum / witness
 
         # Depending on what problem type we need to search all terminal nodes and find the best (optimisation), or just find a terminal which meets a threshold (decision)
         if problem_type is ProblemType.OPTIMISATION:
-            node_distribution = _search_for_optimum(node_distribution, param_delta, param_alpha)
+            node_distribution = _search_for_optimum(
+                node_distribution, param_delta, param_alpha
+            )
 
             # Only for verbose processing and printing the transitions
             if verbose:
                 for knapsack_hash, distribution in node_distribution.items():
                     child_knapsack = KnapsackInstance.instance_by_hash[knapsack_hash]
-                    print(f"optimal jump: {get_unmerged_item_inclusion_string(knapsack_instance.knapsack_items, knapsack_instance.master_knapsack.knapsack_items if knapsack_instance.master_knapsack else knapsack_instance.knapsack_items)} -> {get_unmerged_item_inclusion_string(child_knapsack.knapsack_items, child_knapsack.master_knapsack.knapsack_items)} = {distribution:.3f}")
+                    print(
+                        f"optimal jump: {get_unmerged_item_inclusion_string(knapsack_instance.knapsack_items, knapsack_instance.master_knapsack.knapsack_items if knapsack_instance.master_knapsack else knapsack_instance.knapsack_items)} -> {get_unmerged_item_inclusion_string(child_knapsack.knapsack_items, child_knapsack.master_knapsack.knapsack_items)} = {distribution:.3f}"
+                    )
 
         elif problem_type is ProblemType.DECISION:
             # Guaranteed by `_validate_parameters_and_value_threshold` above, this narrows the type
@@ -374,7 +719,9 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
             # If alpha is 0.0, we never find a witness.
             # To prevent infinite recursions, we skip the search entirely.
             if param_alpha != 0.0:
-                node_distribution = _search_for_witness(node_distribution, value_threshold, param_delta, param_alpha)
+                node_distribution = _search_for_witness(
+                    node_distribution, value_threshold, param_delta, param_alpha
+                )
 
         else:
             raise ValueError(f"Unexpected problem type: {problem_type}")
@@ -383,18 +730,34 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
 
         # Brute search failed - Add an item to simplify the task
         if percent_not_find_optimal:
-            node_distribution = _add_item_and_continue_search(node_distribution, param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
+            node_distribution = _add_item_and_continue_search(
+                node_distribution,
+                param_alpha,
+                param_beta,
+                param_gamma,
+                param_delta,
+                problem_type,
+                value_threshold,
+            )
 
         # Check the sum distribution equals 1
         if not math.isclose(sum(node_distribution.values()), 1.0):
-            raise RuntimeError('node distribution must equal 1')
+            raise RuntimeError("node distribution must equal 1")
 
         # Store the node distribution so that if this node is reached by another path, the distribution can be fetched without additional calculations
         distribution_by_hash[node_distribution_hash] = node_distribution
 
         return node_distribution
 
-    child_node_distribution = _get_child_node_distribution(knapsack_instance, param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
+    child_node_distribution = _get_child_node_distribution(
+        knapsack_instance,
+        param_alpha,
+        param_beta,
+        param_gamma,
+        param_delta,
+        problem_type,
+        value_threshold,
+    )
 
     if verbose:
         print("\n-------------------------------------\n")
@@ -402,235 +765,340 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
     return child_node_distribution
 
 
-def print_node_distribution(master_knapsack_instance: KnapsackInstance, distribution: dict[int, float], parameters: tuple[float, float, float, float] | None = None, print_threshold: float = 0.0001, show_unmerged_distribution: bool = False, problem_type: ProblemType = ProblemType.OPTIMISATION, value_threshold: int | None = None) -> None:
-        """ Print the terminal-node distribution for a knapsack instance in a readable form.
+def print_node_distribution(
+    master_knapsack_instance: KnapsackInstance,
+    distribution: dict[int, float],
+    parameters: tuple[float, float, float, float] | None = None,
+    print_threshold: float = 0.0001,
+    show_unmerged_distribution: bool = False,
+    problem_type: ProblemType = ProblemType.OPTIMISATION,
+    value_threshold: int | None = None,
+) -> None:
+    """Print the terminal-node distribution for a knapsack instance in a readable form.
 
-        Each terminal node is shown as a binary (1 and 0) list of item inclusions, based on the order
-        the items were supplied to the master node knapsack, together with its total value, total
-        weight against capacity, and probability (as a percentage of 1); optimal nodes (or, for the
-        decision problem, witness nodes) are marked with `***`. Only feasible (at or under capacity) terminal (no more items will fit in the
-        knapsack) nodes appear. By default, terminal nodes that differ only by which copy of a
-        repeated identical item was included are merged.
+    Each terminal node is shown as a binary (1 and 0) list of item inclusions, based on the order
+    the items were supplied to the master node knapsack, together with its total value, total
+    weight against capacity, and probability (as a percentage of 1); optimal nodes (or, for the
+    decision problem, witness nodes) are marked with `***`. Only feasible (at or under capacity) terminal (no more items will fit in the
+    knapsack) nodes appear. By default, terminal nodes that differ only by which copy of a
+    repeated identical item was included are merged.
 
-        Also prints the ordered list of knapsack items and the count of terminal nodes reached.
+    Also prints the ordered list of knapsack items and the count of terminal nodes reached.
 
-        Parameters
-        ----------
-        master_knapsack_instance : KnapsackInstance
-            The root knapsack the `distribution` was computed from; its item order defines the
-            inclusion strings.
-        distribution : dict[int, float]
-            The probability distribution to print, mapping each terminal node's `hash` to its
-            probability (as produced by `get_node_distribution`).
-        parameters : tuple[float, float, float, float] | None, default None
-            The `(alpha, beta, gamma, delta)` parameters used to calculate the distribution, printed
-            in the header when given.
-        print_threshold : float, default 0.0001
-            Only terminal nodes with a probability greater than or equal to this are printed.
-        show_unmerged_distribution : bool, default False
-            If `True`, additionally print the unmerged distribution, distinguishing which copy of a
-            repeated identical item was included.
-        problem_type : ProblemType, default ProblemType.OPTIMISATION
-            The problem variant the `distribution` was computed for, printed in the header.
-        value_threshold : int | None, default None
-            The target value for a decision problem, printed in the header and used to mark witness
-            nodes; must be `None` for an optimisation problem.
+    Parameters
+    ----------
+    master_knapsack_instance : KnapsackInstance
+        The root knapsack the `distribution` was computed from; its item order defines the
+        inclusion strings.
+    distribution : dict[int, float]
+        The probability distribution to print, mapping each terminal node's `hash` to its
+        probability (as produced by `get_node_distribution`).
+    parameters : tuple[float, float, float, float] | None, default None
+        The `(alpha, beta, gamma, delta)` parameters used to calculate the distribution, printed
+        in the header when given.
+    print_threshold : float, default 0.0001
+        Only terminal nodes with a probability greater than or equal to this are printed.
+    show_unmerged_distribution : bool, default False
+        If `True`, additionally print the unmerged distribution, distinguishing which copy of a
+        repeated identical item was included.
+    problem_type : ProblemType, default ProblemType.OPTIMISATION
+        The problem variant the `distribution` was computed for, printed in the header.
+    value_threshold : int | None, default None
+        The target value for a decision problem, printed in the header and used to mark witness
+        nodes; must be `None` for an optimisation problem.
 
-        Raises
-        ------
-        TypeError
-            if `distribution`, the print parameters, or `problem_type` have the wrong types, or if
-            `value_threshold` is not an `int` for a decision problem / not `None` for an
-            optimisation problem.
-        ValueError
-            if `distribution` does not sum to 1, a print parameter is out of range, or
-            `value_threshold` is negative for a decision problem.
+    Raises
+    ------
+    TypeError
+        if `distribution`, the print parameters, or `problem_type` have the wrong types, or if
+        `value_threshold` is not an `int` for a decision problem / not `None` for an
+        optimisation problem.
+    ValueError
+        if `distribution` does not sum to 1, a print parameter is out of range, or
+        `value_threshold` is negative for a decision problem.
 
 
-        Returns
-        -------
-        None
-        """
+    Returns
+    -------
+    None
+    """
 
-        def validate_distribution(distribution: dict[int, float]) -> None:
-            """ Validate the supplied distribution. """
+    def validate_distribution(distribution: dict[int, float]) -> None:
+        """Validate the supplied distribution."""
 
-            if not isinstance(distribution, dict):
+        if not isinstance(distribution, dict):
+            raise TypeError
+
+        if not all(
+            (isinstance(key, int) and not isinstance(key, bool))
+            for key in distribution
+        ):
+            raise TypeError
+
+        if not all(isinstance(value, float) for value in distribution.values()):
+            raise TypeError
+
+        if not math.isclose(sum(distribution.values()), 1.0):
+            raise ValueError
+
+    def validate_print_parameters(
+        parameters: tuple[float, float, float, float] | None, print_threshold: float
+    ) -> None:
+        """Validate the supplied print parameters."""
+
+        if parameters is not None:
+            if not isinstance(parameters, tuple):
                 raise TypeError
 
-            if not all((isinstance(key, int) and not isinstance(key, bool)) for key in distribution.keys()):
-                raise TypeError
-
-            if not all(isinstance(value, float) for value in distribution.values()):
-                raise TypeError
-
-            if not math.isclose(sum(distribution.values()), 1.0):
+            if not len(parameters) == 4:
                 raise ValueError
 
-        def validate_print_parameters(parameters: tuple[float, float, float, float] | None, print_threshold: float ) -> None:
-            """ Validate the supplied print parameters. """
-
-            if parameters is not None:
-                if not isinstance(parameters, tuple):
-                    raise TypeError
-
-                if not len(parameters) == 4:
-                    raise ValueError
-
-                if not all(isinstance(parameter, float) for parameter in parameters):
-                    raise TypeError
-
-                if not all(0.0 <= parameter <= 1 for parameter in parameters):
-                    raise ValueError
-
-            if not isinstance(print_threshold, float):
+            if not all(isinstance(parameter, float) for parameter in parameters):
                 raise TypeError
 
-            if not 0.0 <= print_threshold <= 1.0:
+            if not all(0.0 <= parameter <= 1 for parameter in parameters):
                 raise ValueError
 
+        if not isinstance(print_threshold, float):
+            raise TypeError
 
-        def get_item_inclusion_string(terminal_node_knapsack_items_repr_hash: list[int], master_knapsack_items_repr_hashes: list[int]) -> str:
-            """ Return a string of the items included (1s and 0s) base on the order they are specified in `master_knapsack_items_repr_hashes`.
+        if not 0.0 <= print_threshold <= 1.0:
+            raise ValueError
 
-            This more involved method is required due to repeated items. This gives strict priority to earlier instances of the repeated identical item.
-            This means that two terminal nodes featuring a repeated item will give the same terminal distribution, regardless of which of the items was
-            included. The reason for this is to a human, the two knapsacks are identical, hence, should not be considered split.
-            One could also split choices evenly across the repeated items, but this adds more noise to the data unnecessarily."""
+    def get_item_inclusion_string(
+        terminal_node_knapsack_items_repr_hash: list[int],
+        master_knapsack_items_repr_hashes: list[int],
+    ) -> str:
+        """Return a string of the items included (1s and 0s) base on the order they are specified in `master_knapsack_items_repr_hashes`.
 
-            item_inclusions = [True] * len(master_knapsack_items_repr_hashes)
+        This more involved method is required due to repeated items. This gives strict priority to earlier instances of the repeated identical item.
+        This means that two terminal nodes featuring a repeated item will give the same terminal distribution, regardless of which of the items was
+        included. The reason for this is to a human, the two knapsacks are identical, hence, should not be considered split.
+        One could also split choices evenly across the repeated items, but this adds more noise to the data unnecessarily."""
 
-            for terminal_node_item_hash in terminal_node_knapsack_items_repr_hash:
-                for i in range(len(master_knapsack_items_repr_hashes) - 1, -1, -1):
-                    if master_knapsack_items_repr_hashes[i] == terminal_node_item_hash and item_inclusions[i]:
-                        item_inclusions[i] = False
-                        break
+        item_inclusions = [True] * len(master_knapsack_items_repr_hashes)
 
-            item_inclusion_string = str([1 if item_included else 0 for item_included in item_inclusions])
+        for terminal_node_item_hash in terminal_node_knapsack_items_repr_hash:
+            for i in range(len(master_knapsack_items_repr_hashes) - 1, -1, -1):
+                if (
+                    master_knapsack_items_repr_hashes[i] == terminal_node_item_hash
+                    and item_inclusions[i]
+                ):
+                    item_inclusions[i] = False
+                    break
 
-            return item_inclusion_string
+        item_inclusion_string = str(
+            [1 if item_included else 0 for item_included in item_inclusions]
+        )
 
-        def get_unmerged_item_inclusion_string(terminal_node_knapsack_items: list[KnapsackItem], master_knapsack_items: list[KnapsackItem]) -> str:
-            """ Return a string of the items included (1s and 0s) base on the order they are specified in `master_knapsack_items`.
+        return item_inclusion_string
 
-            This method does not merge repeated items. It looks at which item was included and prints that, rather than shifting all distribution to the first instance of a repeated item."""
-            item_inclusions = [True] * len(master_knapsack_items)
+    def get_unmerged_item_inclusion_string(
+        terminal_node_knapsack_items: list[KnapsackItem],
+        master_knapsack_items: list[KnapsackItem],
+    ) -> str:
+        """Return a string of the items included (1s and 0s) base on the order they are specified in `master_knapsack_items`.
 
-            for terminal_node_item in terminal_node_knapsack_items:
-                for i in range(len(master_knapsack_items) - 1, -1, -1):
-                    if master_knapsack_items[i] is terminal_node_item and item_inclusions[i]:
-                        item_inclusions[i] = False
-                        break
+        This method does not merge repeated items. It looks at which item was included and prints that, rather than shifting all distribution to the first instance of a repeated item."""
+        item_inclusions = [True] * len(master_knapsack_items)
 
-            item_inclusion_string = str([1 if item_included else 0 for item_included in item_inclusions])
+        for terminal_node_item in terminal_node_knapsack_items:
+            for i in range(len(master_knapsack_items) - 1, -1, -1):
+                if (
+                    master_knapsack_items[i] is terminal_node_item
+                    and item_inclusions[i]
+                ):
+                    item_inclusions[i] = False
+                    break
 
-            return item_inclusion_string
+        item_inclusion_string = str(
+            [1 if item_included else 0 for item_included in item_inclusions]
+        )
 
-        validate_distribution(distribution)
-        validate_print_parameters(parameters, print_threshold)
-        if not isinstance(problem_type, ProblemType):
-            raise TypeError(f"`problem_type` must be of type `ProblemType`, but is {type(problem_type)}.")
-        if problem_type is ProblemType.DECISION:
-            if not isinstance(value_threshold, int) or isinstance(value_threshold, bool):
-                raise TypeError(f"`value_threshold` must be int for decision problem, is {type(value_threshold)}.")
-            if value_threshold < 0:
-                raise ValueError(f"`value_threshold` must be positive for decision problem, is {value_threshold}.")
-        elif value_threshold is not None:
-            raise TypeError(f"`value_threshold` must be None for optimisation problem, is {type(value_threshold)}.")
+        return item_inclusion_string
 
-        def is_marked(child_knapsack_instance: KnapsackInstance) -> bool:
-            """ Whether to mark a terminal node with `***`: a witness for the decision problem, otherwise an optimal node. """
-            if value_threshold is not None:
-                return child_knapsack_instance.standing_value >= value_threshold
-            return hash(child_knapsack_instance) in master_knapsack_instance.optimal_terminal_nodes
+    validate_distribution(distribution)
+    validate_print_parameters(parameters, print_threshold)
+    if not isinstance(problem_type, ProblemType):
+        raise TypeError(
+            f"`problem_type` must be of type `ProblemType`, but is {type(problem_type)}."
+        )
+    if problem_type is ProblemType.DECISION:
+        if not isinstance(value_threshold, int) or isinstance(value_threshold, bool):
+            raise TypeError(
+                f"`value_threshold` must be int for decision problem, is {type(value_threshold)}."
+            )
+        if value_threshold < 0:
+            raise ValueError(
+                f"`value_threshold` must be positive for decision problem, is {value_threshold}."
+            )
+    elif value_threshold is not None:
+        raise TypeError(
+            f"`value_threshold` must be None for optimisation problem, is {type(value_threshold)}."
+        )
 
-        print("Inputs\n")
-        if parameters: print(f"Parameters: \u03b1 = {parameters[0]}, \u03B2 = {parameters[1]}, \u03b3 = {parameters[2]}, \u03B4 = {parameters[3]}\n")  # alpha (\u03b1), beta (\u03B2), gamma (\u03b3), delta (\u03B4)
-        print(f"Knapsack Problem Variant: {problem_type.name.capitalize()}\n")
-        print("Items: " + ", ".join([str(knapsack_item) for knapsack_item in master_knapsack_instance.knapsack_items]) + "\n")
-        print(f"Budget: {master_knapsack_instance.knapsack_capacity}\n")
-        if value_threshold is not None: print(f"Target: {value_threshold}\n")
+    def is_marked(child_knapsack_instance: KnapsackInstance) -> bool:
+        """Whether to mark a terminal node with `***`: a witness for the decision problem, otherwise an optimal node."""
+        if value_threshold is not None:
+            return child_knapsack_instance.standing_value >= value_threshold
+        return (
+            hash(child_knapsack_instance)
+            in master_knapsack_instance.optimal_terminal_nodes
+        )
 
-        print("-------------------------------------\n")
+    print("Inputs\n")
+    if parameters:
+        print(
+            f"Parameters: \u03b1 = {parameters[0]}, \u03b2 = {parameters[1]}, \u03b3 = {parameters[2]}, \u03b4 = {parameters[3]}\n"
+        )  # alpha (\u03b1), beta (\u03B2), gamma (\u03b3), delta (\u03B4)
+    print(f"Knapsack Problem Variant: {problem_type.name.capitalize()}\n")
+    print(
+        "Items: "
+        + ", ".join(
+            [
+                str(knapsack_item)
+                for knapsack_item in master_knapsack_instance.knapsack_items
+            ]
+        )
+        + "\n"
+    )
+    print(f"Budget: {master_knapsack_instance.knapsack_capacity}\n")
+    if value_threshold is not None:
+        print(f"Target: {value_threshold}\n")
 
-        print("Output\n")
-        print(f"Terminal Nodes (*** for {"witness" if value_threshold is not None else "optimal"}):")
+    print("-------------------------------------\n")
 
-        merged_distribution: dict[str, float] = {}
-        item_inclusion_string_to_first_instance: dict[str, int] = {}
+    print("Output\n")
+    print(
+        f"Terminal Nodes (*** for {'witness' if value_threshold is not None else 'optimal'}):"
+    )
 
-        for knapsack_instance_hash, distribution_percentage in distribution.items():
-            child_knapsack_instance = KnapsackInstance.instance_by_hash[knapsack_instance_hash]
-            item_inclusion_string = get_item_inclusion_string(child_knapsack_instance.knapsack_items_repr_hashes, master_knapsack_instance.knapsack_items_repr_hashes)
+    merged_distribution: dict[str, float] = {}
+    item_inclusion_string_to_first_instance: dict[str, int] = {}
 
-            if item_inclusion_string not in merged_distribution:
-                merged_distribution[item_inclusion_string] = 0.0
-                item_inclusion_string_to_first_instance[item_inclusion_string] = knapsack_instance_hash
+    for knapsack_instance_hash, distribution_percentage in distribution.items():
+        child_knapsack_instance = KnapsackInstance.instance_by_hash[
+            knapsack_instance_hash
+        ]
+        item_inclusion_string = get_item_inclusion_string(
+            child_knapsack_instance.knapsack_items_repr_hashes,
+            master_knapsack_instance.knapsack_items_repr_hashes,
+        )
 
-            merged_distribution[item_inclusion_string] += distribution_percentage
+        if item_inclusion_string not in merged_distribution:
+            merged_distribution[item_inclusion_string] = 0.0
+            item_inclusion_string_to_first_instance[item_inclusion_string] = (
+                knapsack_instance_hash
+            )
 
-        for item_inclusion_string, distribution_percentage in dict(sorted(merged_distribution.items(), key=lambda x: x[1], reverse=True)).items():
+        merged_distribution[item_inclusion_string] += distribution_percentage
+
+    for item_inclusion_string, distribution_percentage in dict(
+        sorted(merged_distribution.items(), key=lambda x: x[1], reverse=True)
+    ).items():
+        if distribution_percentage >= print_threshold:
+            child_knapsack_instance = KnapsackInstance.instance_by_hash[
+                item_inclusion_string_to_first_instance[item_inclusion_string]
+            ]
+
+            print(
+                f"{item_inclusion_string} - Σv: {child_knapsack_instance.standing_value}, Σw: {master_knapsack_instance.knapsack_capacity - child_knapsack_instance.knapsack_capacity} / {master_knapsack_instance.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{' ***' if is_marked(child_knapsack_instance) else ''}"
+            )
+
+    if show_unmerged_distribution:
+        print("\n---\n\nUnmerged Terminal Nodes:")
+
+        for knapsack_instance_hash, distribution_percentage in dict(
+            sorted(distribution.items(), key=lambda x: x[1], reverse=True)
+        ).items():
             if distribution_percentage >= print_threshold:
+                child_knapsack_instance = KnapsackInstance.instance_by_hash[
+                    knapsack_instance_hash
+                ]
+                item_inclusion_string = get_unmerged_item_inclusion_string(
+                    child_knapsack_instance.knapsack_items,
+                    master_knapsack_instance.knapsack_items,
+                )
 
-                child_knapsack_instance = KnapsackInstance.instance_by_hash[item_inclusion_string_to_first_instance[item_inclusion_string]]
+                print(
+                    f"{item_inclusion_string} - Σv: {child_knapsack_instance.standing_value}, Σw: {master_knapsack_instance.knapsack_capacity - child_knapsack_instance.knapsack_capacity} / {master_knapsack_instance.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{' ***' if is_marked(child_knapsack_instance) else ''}"
+                )
 
-                print(f"{item_inclusion_string} - Σv: {child_knapsack_instance.standing_value}, Σw: {master_knapsack_instance.knapsack_capacity - child_knapsack_instance.knapsack_capacity} / {master_knapsack_instance.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{" ***" if is_marked(child_knapsack_instance) else ""}")
-
-
-        if show_unmerged_distribution:
-            print("\n---\n\nUnmerged Terminal Nodes:")
-
-            for knapsack_instance_hash, distribution_percentage in dict(sorted(distribution.items(), key=lambda x: x[1], reverse=True)).items():
-                if distribution_percentage >= print_threshold:
-                    child_knapsack_instance = KnapsackInstance.instance_by_hash[knapsack_instance_hash]
-                    item_inclusion_string = get_unmerged_item_inclusion_string(child_knapsack_instance.knapsack_items, master_knapsack_instance.knapsack_items)
-
-                    print(f"{item_inclusion_string} - Σv: {child_knapsack_instance.standing_value}, Σw: {master_knapsack_instance.knapsack_capacity - child_knapsack_instance.knapsack_capacity} / {master_knapsack_instance.knapsack_capacity} - {100.0 * distribution_percentage:.3f}%{" ***" if is_marked(child_knapsack_instance) else ""}")
-
-        print(f"\nTotal Distribution: {sum(merged_distribution.values())}\n")
-        print(f"Number of Terminal Nodes: {len(merged_distribution)} (unmerged: {len(distribution)})\n")
+    print(f"\nTotal Distribution: {sum(merged_distribution.values())}\n")
+    print(
+        f"Number of Terminal Nodes: {len(merged_distribution)} (unmerged: {len(distribution)})\n"
+    )
 
 
-def solve_decision_variant(master_knapsack_instance: KnapsackInstance, param_alpha: float, param_beta: float, param_gamma: float, param_delta: float, value_threshold: int) -> float:
-        """ Return the probability that a decision-maker finds a witness for the decision variant.
+def solve_decision_variant(
+    master_knapsack_instance: KnapsackInstance,
+    param_alpha: float,
+    param_beta: float,
+    param_gamma: float,
+    param_delta: float,
+    value_threshold: int,
+) -> float:
+    """Return the probability that a decision-maker finds a witness for the decision variant.
 
-        Returns the expected fraction of the time (as a probability between 0 and 1) that a
-        decision-maker with the given parameters reaches a feasible terminal node whose total value
-        meets or exceeds `value_threshold` (the target).
+    Returns the expected fraction of the time (as a probability between 0 and 1) that a
+    decision-maker with the given parameters reaches a feasible terminal node whose total value
+    meets or exceeds `value_threshold` (the target).
 
-        Parameters
-        ----------
-        master_knapsack_instance : KnapsackInstance
-            The root knapsack to solve.
-        param_alpha : float
-            Search / global-optimisation parameter. `param_alpha` = 0 is the special case of never
-            searching for a witness, used for 'item-by-item' search.
-        param_beta : float
-            Density-preference (local-optimisation) parameter.
-        param_gamma : float
-            Complexity-aversion (weight-preference) parameter.
-        param_delta : float
-            Item-level rationality (dominance-avoidance) parameter.
-        value_threshold : int
-            The target value a witness must reach.
+    Parameters
+    ----------
+    master_knapsack_instance : KnapsackInstance
+        The root knapsack to solve.
+    param_alpha : float
+        Search / global-optimisation parameter. `param_alpha` = 0 is the special case of never
+        searching for a witness, used for 'item-by-item' search.
+    param_beta : float
+        Density-preference (local-optimisation) parameter.
+    param_gamma : float
+        Complexity-aversion (weight-preference) parameter.
+    param_delta : float
+        Item-level rationality (dominance-avoidance) parameter.
+    value_threshold : int
+        The target value a witness must reach.
 
-        Raises
-        ------
-        TypeError
-            if any of `param_alpha`, `param_beta`, `param_gamma`, `param_delta` is not a `float`, or
-            `value_threshold` is not an `int`.
-        ValueError
-            if any parameter is out of range, or `value_threshold` is negative.
+    Raises
+    ------
+    TypeError
+        if any of `param_alpha`, `param_beta`, `param_gamma`, `param_delta` is not a `float`, or
+        `value_threshold` is not an `int`.
+    ValueError
+        if any parameter is out of range, or `value_threshold` is negative.
 
-        Returns
-        -------
-        percent_witness_found : float
-            The expected probability that a witness is successfully found.
-        """
+    Returns
+    -------
+    percent_witness_found : float
+        The expected probability that a witness is successfully found.
+    """
 
-        _validate_parameters_and_value_threshold(param_alpha, param_beta, param_gamma, param_delta, ProblemType.DECISION, value_threshold)
+    _validate_parameters_and_value_threshold(
+        param_alpha,
+        param_beta,
+        param_gamma,
+        param_delta,
+        ProblemType.DECISION,
+        value_threshold,
+    )
 
-        node_distribution = get_node_distribution(master_knapsack_instance, param_alpha, param_beta, param_gamma, param_delta, ProblemType.DECISION, value_threshold)
-        percent_witness_found = sum([distribution_percentage for knapsack_instance_hash, distribution_percentage in node_distribution.items() if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value >= value_threshold])
+    node_distribution = get_node_distribution(
+        master_knapsack_instance,
+        param_alpha,
+        param_beta,
+        param_gamma,
+        param_delta,
+        ProblemType.DECISION,
+        value_threshold,
+    )
+    percent_witness_found = sum(
+        [
+            distribution_percentage
+            for knapsack_instance_hash, distribution_percentage in node_distribution.items()
+            if KnapsackInstance.instance_by_hash[knapsack_instance_hash].standing_value
+            >= value_threshold
+        ]
+    )
 
-        return percent_witness_found
+    return percent_witness_found

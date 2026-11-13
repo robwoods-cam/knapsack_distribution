@@ -1,4 +1,5 @@
-from knapsack_distribution import KnapsackItem, KnapsackInstance, solve_decision_variant
+from knapsack_distribution import KnapsackInstance, KnapsackItem, solve_decision_variant
+
 
 def main() -> None:
     # Define knapsack items

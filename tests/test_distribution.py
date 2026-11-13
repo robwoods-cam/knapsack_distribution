@@ -17,12 +17,23 @@ This program is free software under the GNU Affero General Public License v3.
 See the LICENSE file for full terms.
 """
 
-import unittest
-import sys
 import io
+import sys
+import unittest
 
-from src.knapsack_distribution import KnapsackItem, KnapsackInstance, ProblemType, get_node_distribution, print_node_distribution, solve_decision_variant, __version__
-from src.knapsack_distribution.distribution import _get_knapsack_item_dominance_matrix, _validate_parameters_and_value_threshold
+from src.knapsack_distribution import (
+    KnapsackInstance,
+    KnapsackItem,
+    ProblemType,
+    __version__,
+    get_node_distribution,
+    print_node_distribution,
+    solve_decision_variant,
+)
+from src.knapsack_distribution.distribution import (
+    _get_knapsack_item_dominance_matrix,
+    _validate_parameters_and_value_threshold,
+)
 
 
 class TestModelVersion(unittest.TestCase):

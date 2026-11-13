@@ -19,9 +19,11 @@ See the LICENSE file for full terms.
 
 
 from __future__ import annotations
+
+import hashlib
 from dataclasses import dataclass
 from typing import ClassVar
-import hashlib
+
 from .knapsack_item import KnapsackItem
 
 
