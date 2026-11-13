@@ -36,7 +36,7 @@ class KnapsackItem:
     Attributes
     ----------
     value : int
-        The value of the knapsack item (non-negative).
+        The value of the knapsack item (positive).
     weight : int
         The weight of the knapsack item (positive).
     density : float
@@ -127,13 +127,14 @@ class KnapsackItem:
         TypeError
             if `value` or `weight` is not an `int`.
         ValueError
-            if `value` is negative or `weight` is not positive.
+            if `value` or `weight` is not positive.
         """
         if not (isinstance(self.value, int) and not isinstance(self.value, bool)):
             raise TypeError(f"value must be of type int, is {type(self.value)}.")
 
-        if self.value < 0:
-            raise ValueError(f"value must be non-negative, is {self.value}.")
+        # Zero-value items never need to be added, so are not allowed (their zero density also breaks the distribution)
+        if self.value <= 0:
+            raise ValueError(f"value must be positive, is {self.value}. Items with zero or negative value make no sense to include in a knapsack, so should be removed from the instance before analysing.")
 
         if not (isinstance(self.weight, int) and not isinstance(self.weight, bool)):
             raise TypeError(f"weight must be of type int, is {type(self.weight)}.")

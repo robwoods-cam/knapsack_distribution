@@ -54,6 +54,11 @@ class TestKnapsackItem(unittest.TestCase):
             KnapsackItem(value, weight)
 
         with self.assertRaises(ValueError):
+            value = 0
+            weight = 30
+            KnapsackItem(value, weight)
+
+        with self.assertRaises(ValueError):
             value = 10
             weight = 0
             KnapsackItem(value, weight)
