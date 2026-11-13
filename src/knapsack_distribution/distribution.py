@@ -351,14 +351,9 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
         # the terminal nodes' are precomputed in `included_dominated_items_by_hash` before the search starts.
         included_dominated_items_hashes: set[int] = {hash(standing_knapsack_item) for standing_knapsack_item in knapsack_instance.standing_knapsack_items if any(hash(knapsack_item_x) in knapsack_item_dominance_matrix[hash(standing_knapsack_item)] for knapsack_item_x in knapsack_instance.knapsack_items)}
 
-        # _non_dominated_terminal_nodes
-        #     return [terminal_node for terminal_node in self._terminal_nodes if not KnapsackInstance.instance_by_hash[terminal_node]._is_dominated or all(terminal_included_dominated_item in self._included_dominated_items for terminal_included_dominated_item in KnapsackInstance.instance_by_hash[terminal_node]._included_dominated_items)]
-
+        # The (optimal) terminal nodes reachable without adding a dominated item from this node onwards (dominated items
+        # already included to reach this node are ignored)
         non_dominated_terminal_nodes = [terminal_node for terminal_node in knapsack_instance.terminal_nodes if len(included_dominated_items_by_hash[terminal_node]) == 0 or all(hash(terminal_included_dominated_item) in included_dominated_items_hashes for terminal_included_dominated_item in included_dominated_items_by_hash[terminal_node])]
-
-        # _non_dominated_optimal_terminal_nodes
-        #   return [terminal_node for terminal_node in self._optimal_terminal_nodes if not KnapsackInstance.instance_by_hash[terminal_node]._is_dominated or all(terminal_included_dominated_item in self._included_dominated_items for terminal_included_dominated_item in KnapsackInstance.instance_by_hash[terminal_node]._included_dominated_items)]
-
         non_dominated_optimal_terminal_nodes = [terminal_node for terminal_node in knapsack_instance.optimal_terminal_nodes if len(included_dominated_items_by_hash[terminal_node]) == 0 or all(hash(terminal_included_dominated_item) in included_dominated_items_hashes for terminal_included_dominated_item in included_dominated_items_by_hash[terminal_node])]
 
         # Brute force search for optimum / witness
@@ -374,8 +369,8 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
                     print(f"optimal jump: {get_unmerged_item_inclusion_string(knapsack_instance.knapsack_items, knapsack_instance.master_knapsack.knapsack_items if knapsack_instance.master_knapsack else knapsack_instance.knapsack_items)} -> {get_unmerged_item_inclusion_string(child_knapsack.knapsack_items, child_knapsack.master_knapsack.knapsack_items)} = {distribution:.3f}")
 
         elif problem_type is ProblemType.DECISION:
-            if value_threshold is None:
-                raise Exception("TODO: Decision Problem must have a value threshold!")
+            # Guaranteed by `_validate_parameters_and_value_threshold` above, this narrows the type
+            assert value_threshold is not None
             # If alpha is 0.0, we never find a witness.
             # To prevent infinite recursions, we skip the search entirely.
             if param_alpha != 0.0:
@@ -397,7 +392,7 @@ def get_node_distribution(knapsack_instance: KnapsackInstance, param_alpha: floa
         # Store the node distribution so that if this node is reached by another path, the distribution can be fetched without additional calculations
         distribution_by_hash[node_distribution_hash] = node_distribution
 
-        return distribution_by_hash[node_distribution_hash]  # is node_distribution
+        return node_distribution
 
     child_node_distribution = _get_child_node_distribution(knapsack_instance, param_alpha, param_beta, param_gamma, param_delta, problem_type, value_threshold)
 
